@@ -10,7 +10,7 @@ Banco de dados PostgreSQL para scouting e análise de desempenho de jogadores de
 
 ### 1. Clone o repositório
 ```bash
-git clone [https://github.com/seu-usuario/scoutpro.git](https://github.com/luizneto27/SCOUTPRO)
+git clone https://github.com/luizneto27/SCOUTPRO
 cd scoutpro
 ```
 
