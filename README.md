@@ -18,9 +18,6 @@ cd scoutpro
 ```bash
 # Windows (CMD)
 copy .env.example .env
-
-# Mac/Linux
-cp .env.example .env
 ```
 
 > Edite o `.env` se quiser mudar usuário ou senha.
