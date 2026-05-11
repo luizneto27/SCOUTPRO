@@ -10,7 +10,7 @@ Banco de dados PostgreSQL para scouting e análise de desempenho de jogadores de
 
 ### 1. Clone o repositório
 ```bash
-git clone https://github.com/seu-usuario/scoutpro.git
+git clone [https://github.com/seu-usuario/scoutpro.git](https://github.com/luizneto27/SCOUTPRO)
 cd scoutpro
 ```
 
@@ -44,20 +44,6 @@ O banco já sobe com as tabelas criadas automaticamente.
 
 ---
 
-## Comandos úteis
-
-```bash
-# Parar o banco
-docker compose down
-
-# Recriar o banco do zero (apaga todos os dados)
-docker compose down -v
-docker compose up -d
-
-# Ver logs
-docker compose logs -f
-```
-
 ## Estrutura das tabelas
 
 ```
@@ -73,7 +59,7 @@ estatisticas    → stats por temporada/competição
 
 ## Atualizar o schema
 
-Quando uma nova tabela ou coluna for adicionada, edite o arquivo `init/01_schema.sql`, faça o commit e avise o time para recriar o banco:
+Quando uma nova tabela ou coluna for adicionada, edite o arquivo `init/schema.sql`, faça o commit e avise o time para recriar o banco:
 
 ```bash
 docker compose down -v && docker compose up -d
