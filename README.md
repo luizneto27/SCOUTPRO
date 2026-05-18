@@ -16,7 +16,6 @@ cd scoutpro
 
 ### 2. Crie o arquivo `.env`
 ```bash
-# Windows (CMD)
 copy .env.example .env
 ```
 
@@ -52,12 +51,4 @@ jogadores       → cadastro dos jogadores
 scouts          → observadores/analistas
 relatorios      → avaliações feitas pelos scouts
 estatisticas    → stats por temporada/competição
-```
-
-## Atualizar o schema
-
-Quando uma nova tabela ou coluna for adicionada, edite o arquivo `init/schema.sql`, faça o commit e avise o time para recriar o banco:
-
-```bash
-docker compose down -v && docker compose up -d
 ```
