@@ -84,6 +84,19 @@ python app.py
 
 API local: `http://localhost:5000`
 
+### Variáveis de ambiente (docker-compose)
+
+Defina no ambiente (ou em `.env` local, sem versionar):
+
+```env
+DB_HOST=seu-host-postgres
+DB_PORT=5432
+POSTGRES_DB=postgres
+POSTGRES_USER=seu-usuario
+POSTGRES_PASSWORD=sua-senha
+DB_SSLMODE=require
+```
+
 ### Exemplos rápidos (PowerShell)
 
 Criar jogador:
@@ -189,3 +202,20 @@ $body = @{
 
 Invoke-RestMethod -Method Post -Uri "http://localhost:5000/competicoes" -ContentType "application/json" -Body $body
 ```
+
+---
+
+## Build e Push no ACR com GitHub Actions
+
+Workflow criado em `.github/workflows/build-push-acr.yml`.
+
+Adicione estes secrets em `Settings > Secrets and variables > Actions`:
+
+- `AZURE_ACR_USERNAME`
+- `AZURE_ACR_PASSWORD`
+- `AZURE_ACR_LOGIN_SERVER` (ex.: `meuacr.azurecr.io`)
+
+O workflow:
+- Faz login no ACR via `docker/login-action@v3`
+- Builda a imagem Docker
+- Publica tags `latest` e `${{ github.sha }}`

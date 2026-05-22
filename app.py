@@ -17,6 +17,7 @@ def get_connection():
         dbname=os.getenv("POSTGRES_DB", "scoutpro"),
         user=os.getenv("POSTGRES_USER", "admin"),
         password=os.getenv("POSTGRES_PASSWORD", "admin123"),
+        sslmode=os.getenv("DB_SSLMODE", "prefer"),
     )
 
 
