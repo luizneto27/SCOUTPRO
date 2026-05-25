@@ -74,8 +74,11 @@ CREATE TABLE jogadores (
   peso_kg               SMALLINT,
   pe_dominante          CHAR(1) CHECK (pe_dominante IN ('D', 'E', 'A')),
   id_empresario         INT REFERENCES empresarios(id),
+  posicao_id            INT REFERENCES posicoes(id),
+  posicao_sec_id        INT REFERENCES posicoes(id),
+  clube_atual_id        INT REFERENCES clubes(id),
   ativo                 BOOLEAN DEFAULT TRUE,
-  tipo_jogador          VARCHAR(20) CHECK (tipo_jogador IN ('GOLEIRO', 'JOGADOR_LINHA')) NOT NULL,
+  tipo_jogador          VARCHAR(20) CHECK (tipo_jogador IN ('GOLEIRO', 'JOGADOR_LINHA')) NOT NULL DEFAULT 'JOGADOR_LINHA',
   created_at            TIMESTAMP DEFAULT NOW()
 );
 
