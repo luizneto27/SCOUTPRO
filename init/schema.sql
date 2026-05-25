@@ -33,7 +33,7 @@ CREATE TABLE empresarios (
 
 -- Tabela de Scouts Autônomos
 CREATE TABLE scouts_autonomos (
-  cnpj                  VARCHAR(20) PRIMARY KEY UNIQUE NOT NULL,
+  cnpj                  VARCHAR(20) PRIMARY KEY,
   nome                  VARCHAR(100) NOT NULL,
   especialidade         VARCHAR(100),
   created_at            TIMESTAMP DEFAULT NOW()
