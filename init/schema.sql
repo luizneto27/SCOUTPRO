@@ -117,7 +117,7 @@ CREATE TABLE jogadores_linha (
 CREATE TABLE contratos (
   id                    SERIAL PRIMARY KEY,
   id_jogador            INT NOT NULL REFERENCES jogadores(id),
-  cnpj_clube            VARCHAR(20) NOT NULL REFERENCES clubes(cnpj),
+  clube_id              INT NOT NULL REFERENCES clubes(id),
   valor_contrato        NUMERIC(15,2),
   tempo_contrato        INT,
   multa_rescisoria      NUMERIC(15,2),
