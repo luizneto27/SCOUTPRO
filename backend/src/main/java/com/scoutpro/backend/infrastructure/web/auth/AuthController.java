@@ -57,6 +57,9 @@ public class AuthController {
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido")
     @GetMapping("/me")
     public ResponseEntity<CurrentUserResponse> me(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return ResponseEntity.ok(new CurrentUserResponse(authentication.getName()));
     }
 }

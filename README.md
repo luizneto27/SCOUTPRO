@@ -20,6 +20,8 @@ Backend Java do ScoutPro (Spring Boot + PostgreSQL), com arquitetura limpa, migr
 copy .env.example .env
 ```
 
+`JWT_SECRET` e obrigatorio para subir o backend via Docker Compose.
+
 2. Suba os servicos:
 
 ```bash

@@ -7,6 +7,7 @@ import com.scoutpro.backend.infrastructure.web.usuario.CreateUsuarioRequest;
 import com.scoutpro.backend.infrastructure.web.usuario.UsuarioResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 public class UsuarioService {
@@ -36,7 +37,11 @@ public class UsuarioService {
         entity.setRole(UsuarioRole.USER);
         entity.setAtivo(true);
 
-        UsuarioEntity saved = usuarioRepository.save(entity);
-        return new UsuarioResponse(saved.getId(), saved.getUsername(), saved.getNomeUsuario(), saved.getCpf(), saved.getEmail(), saved.getTelefone());
+        try {
+            UsuarioEntity saved = usuarioRepository.save(entity);
+            return new UsuarioResponse(saved.getId(), saved.getUsername(), saved.getNomeUsuario(), saved.getCpf(), saved.getEmail(), saved.getTelefone());
+        } catch (DataIntegrityViolationException ex) {
+            throw new IllegalArgumentException("username, cpf ou email ja cadastrado", ex);
+        }
     }
 }

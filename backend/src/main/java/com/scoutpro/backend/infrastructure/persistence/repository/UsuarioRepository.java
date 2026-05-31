@@ -10,4 +10,6 @@ public interface UsuarioRepository extends JpaRepository<UsuarioEntity, Integer>
     boolean existsByCpf(String cpf);
     boolean existsByEmail(String email);
     boolean existsByRole(com.scoutpro.backend.domain.enums.UsuarioRole role);
+    boolean existsByRoleAndAtivoTrue(com.scoutpro.backend.domain.enums.UsuarioRole role);
+    Optional<UsuarioEntity> findFirstByRoleOrderByIdAsc(com.scoutpro.backend.domain.enums.UsuarioRole role);
 }

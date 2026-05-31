@@ -16,22 +16,37 @@ public class AdminBootstrapConfig {
                                             UsuarioRepository usuarioRepository,
                                             PasswordEncoder passwordEncoder) {
         return args -> {
-            if (usuarioRepository.existsByRole(UsuarioRole.ADMIN)) {
+            if (usuarioRepository.existsByRoleAndAtivoTrue(UsuarioRole.ADMIN)) {
                 return;
             }
 
             var cfg = securityProperties.getBootstrapAdmin();
-            UsuarioEntity admin = new UsuarioEntity();
-            admin.setUsername(cfg.getUsername());
-            admin.setNomeUsuario(cfg.getNomeUsuario());
-            admin.setCpf(cfg.getCpf());
-            admin.setEmail(cfg.getEmail());
-            admin.setTelefone(cfg.getTelefone());
-            admin.setSenhaHash(passwordEncoder.encode(cfg.getPassword()));
-            admin.setRole(UsuarioRole.ADMIN);
-            admin.setAtivo(true);
+            var existingAdmin = usuarioRepository.findFirstByRoleOrderByIdAsc(UsuarioRole.ADMIN);
 
-            usuarioRepository.save(admin);
+            if (existingAdmin.isPresent()) {
+                UsuarioEntity admin = existingAdmin.get();
+                admin.setUsername(cfg.getUsername());
+                admin.setNomeUsuario(cfg.getNomeUsuario());
+                admin.setCpf(cfg.getCpf());
+                admin.setEmail(cfg.getEmail());
+                admin.setTelefone(cfg.getTelefone());
+                admin.setSenhaHash(passwordEncoder.encode(cfg.getPassword()));
+                admin.setAtivo(true);
+                usuarioRepository.save(admin);
+                return;
+            }
+
+            UsuarioEntity newAdmin = new UsuarioEntity();
+            newAdmin.setUsername(cfg.getUsername());
+            newAdmin.setNomeUsuario(cfg.getNomeUsuario());
+            newAdmin.setCpf(cfg.getCpf());
+            newAdmin.setEmail(cfg.getEmail());
+            newAdmin.setTelefone(cfg.getTelefone());
+            newAdmin.setSenhaHash(passwordEncoder.encode(cfg.getPassword()));
+            newAdmin.setRole(UsuarioRole.ADMIN);
+            newAdmin.setAtivo(true);
+
+            usuarioRepository.save(newAdmin);
         };
     }
 }

@@ -60,6 +60,13 @@ com.scoutpro.backend
   - `V1__baseline.sql`: schema normalizado.
   - `V2__create_usuarios.sql`: tabela de usuarios para autenticacao.
 
+## Regra de Evolucao de Schema (Obrigatoria)
+- O schema deve evoluir exclusivamente via Flyway (`classpath:db/migration`).
+- Qualquer mudanca em entidades JPA deve vir acompanhada da migration correspondente.
+- Nao usar `ddl-auto=create`, `ddl-auto=update` ou alteracoes manuais como estrategia de evolucao.
+- Manter `ddl-auto=validate` para detectar divergencia entre mapeamento e banco no startup.
+- Se `validate` falhar, corrigir com migration nova (`Vx__...sql`), sem editar migrations ja aplicadas.
+
 ## Qualidade e testes
 - Unitarios de service para regras de negocio.
 - Integracao de repositorio com Postgres real (Testcontainers).
