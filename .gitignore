@@ -1,1 +1,10 @@
 .env
+
+# Java / Maven
+backend/target/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
