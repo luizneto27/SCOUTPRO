@@ -3,6 +3,7 @@ package com.scoutpro.backend.config.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
@@ -16,6 +17,20 @@ public class JwtService {
 
     public JwtService(SecurityProperties securityProperties) {
         this.securityProperties = securityProperties;
+    }
+
+    @PostConstruct
+    void validateSecret() {
+        String secret = securityProperties.getJwtSecret();
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET is required and cannot be empty.");
+        }
+        int minBytes = 32; // 256 bits
+        int actualBytes = secret.getBytes(StandardCharsets.UTF_8).length;
+        if (actualBytes < minBytes) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is too short. Minimum is 32 bytes (256 bits), got " + actualBytes + " bytes.");
+        }
     }
 
     public String generateToken(String username) {

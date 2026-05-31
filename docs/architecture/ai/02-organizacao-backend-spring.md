@@ -50,7 +50,8 @@ com.scoutpro.backend
 - Usar Lombok como padrao para getters/setters/construtores onde fizer sentido.
 - Endpoint protegido deve exigir `Authorization: Bearer <token>`.
 - Senhas devem entrar por DTO e serem persistidas apenas como hash BCrypt.
-- Endpoints publicos de autenticacao/cadastro devem ser explicitamente permitidos na `SecurityConfig`.
+- Endpoints publicos devem ser explicitamente permitidos na `SecurityConfig` (ex.: `POST /api/v1/auth/login`).
+- Cadastro de usuario (`POST /api/v1/usuarios`) deve exigir role `ADMIN`.
 
 ## Estratégia de migracao
 - Tratar `V1__baseline.sql` como baseline inicial.
