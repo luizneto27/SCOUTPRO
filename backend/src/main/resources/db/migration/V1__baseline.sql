@@ -66,7 +66,7 @@ CREATE TABLE competicoes (
   id                    SERIAL PRIMARY KEY,
   nome                  VARCHAR(100) NOT NULL,
   pais_id               INT REFERENCES paises(id),
-  tipo_campeonato       VARCHAR(50),
+  tipo_campeonato       VARCHAR(20) NOT NULL CHECK (tipo_campeonato IN ('LIGA', 'COPA', 'AMISTOSO', 'TORNEIO')),
   created_at            TIMESTAMP DEFAULT NOW(),
   UNIQUE (nome, pais_id, tipo_campeonato)
 );
@@ -79,6 +79,22 @@ CREATE TABLE competicoes_edicoes (
   ranking               INT,
   created_at            TIMESTAMP DEFAULT NOW(),
   UNIQUE (competicao_id, temporada)
+);
+
+CREATE TABLE clube_participacoes (
+  id                    SERIAL PRIMARY KEY,
+  clube_id              INT NOT NULL REFERENCES clubes(id),
+  competicao_edicao_id  INT NOT NULL REFERENCES competicoes_edicoes(id) ON DELETE CASCADE,
+  pontos                SMALLINT DEFAULT 0 CHECK (pontos >= 0),
+  jogos                 SMALLINT DEFAULT 0 CHECK (jogos >= 0),
+  vitorias              SMALLINT DEFAULT 0 CHECK (vitorias >= 0),
+  empates               SMALLINT DEFAULT 0 CHECK (empates >= 0),
+  derrotas              SMALLINT DEFAULT 0 CHECK (derrotas >= 0),
+  gols_pro              SMALLINT DEFAULT 0 CHECK (gols_pro >= 0),
+  gols_contra           SMALLINT DEFAULT 0 CHECK (gols_contra >= 0),
+  colocacao             SMALLINT CHECK (colocacao IS NULL OR colocacao >= 1),
+  created_at            TIMESTAMP DEFAULT NOW(),
+  UNIQUE (clube_id, competicao_edicao_id)
 );
 
 -- =========================
@@ -163,7 +179,7 @@ CREATE TABLE transferencias (
   id                    SERIAL PRIMARY KEY,
   data_transferencia    DATE NOT NULL,
   valor_pago            NUMERIC(15,2),
-  tipo                  VARCHAR(50),
+  tipo                  VARCHAR(20) NOT NULL CHECK (tipo IN ('COMPRA', 'EMPRESTIMO', 'TROCA', 'FIM_EMPRESTIMO', 'LIVRE')),
   id_jogador            INT NOT NULL REFERENCES jogadores(id),
   clube_origem_id       INT NOT NULL REFERENCES clubes(id),
   clube_destino_id      INT NOT NULL REFERENCES clubes(id),
@@ -208,11 +224,11 @@ CREATE TABLE relatorios (
   competicao_edicao_id  INT REFERENCES competicoes_edicoes(id),
   data_observacao       DATE NOT NULL,
   local                 VARCHAR(200),
-  tecnica               NUMERIC(4,1) CHECK (tecnica BETWEEN 0 AND 10),
-  tatica                NUMERIC(4,1) CHECK (tatica BETWEEN 0 AND 10),
-  fisico                NUMERIC(4,1) CHECK (fisico BETWEEN 0 AND 10),
-  mentalidade           NUMERIC(4,1) CHECK (mentalidade BETWEEN 0 AND 10),
-  potencial             NUMERIC(4,1) CHECK (potencial BETWEEN 0 AND 10),
+  tecnica               NUMERIC(4,1) NOT NULL CHECK (tecnica BETWEEN 0 AND 10),
+  tatica                NUMERIC(4,1) NOT NULL CHECK (tatica BETWEEN 0 AND 10),
+  fisico                NUMERIC(4,1) NOT NULL CHECK (fisico BETWEEN 0 AND 10),
+  mentalidade           NUMERIC(4,1) NOT NULL CHECK (mentalidade BETWEEN 0 AND 10),
+  potencial             NUMERIC(4,1) NOT NULL CHECK (potencial BETWEEN 0 AND 10),
   nota_geral            NUMERIC(4,1) GENERATED ALWAYS AS (
     ROUND((tecnica + tatica + fisico + mentalidade + potencial) / 5.0, 1)
   ) STORED,
@@ -243,22 +259,22 @@ CREATE TABLE partida_clubes (
 CREATE TABLE disputa (
   id_jogador                    INT NOT NULL REFERENCES jogadores(id),
   id_partida                    INT NOT NULL REFERENCES partidas(id),
-  gols_partida                  INT DEFAULT 0,
-  finalizacoes_gol_partida      INT DEFAULT 0,
-  faltas_cometidas_partida      INT DEFAULT 0,
-  faltas_sofridas_partida       INT DEFAULT 0,
-  cartoes_amarelos_partida      INT DEFAULT 0,
-  cartoes_vermelhos_partida     INT DEFAULT 0,
-  impedimentos_partida          INT DEFAULT 0,
-  km_percorridos_partida        NUMERIC(8,2) DEFAULT 0,
-  desarmes_partida              INT DEFAULT 0,
-  passes_chave_partida          INT DEFAULT 0,
-  minutos_jogados_partida       INT DEFAULT 0,
-  nota_partida                  NUMERIC(3,1),
-  reposicoes_partida            INT DEFAULT 0,
-  gols_sofridos_partida         INT DEFAULT 0,
-  penaltis_defendidos_partida   INT DEFAULT 0,
-  defesas_dificeis_partida      INT DEFAULT 0,
+  gols_partida                  INT DEFAULT 0 CHECK (gols_partida >= 0),
+  finalizacoes_gol_partida      INT DEFAULT 0 CHECK (finalizacoes_gol_partida >= 0),
+  faltas_cometidas_partida      INT DEFAULT 0 CHECK (faltas_cometidas_partida >= 0),
+  faltas_sofridas_partida       INT DEFAULT 0 CHECK (faltas_sofridas_partida >= 0),
+  cartoes_amarelos_partida      INT DEFAULT 0 CHECK (cartoes_amarelos_partida >= 0),
+  cartoes_vermelhos_partida     INT DEFAULT 0 CHECK (cartoes_vermelhos_partida >= 0),
+  impedimentos_partida          INT DEFAULT 0 CHECK (impedimentos_partida >= 0),
+  km_percorridos_partida        NUMERIC(8,2) DEFAULT 0 CHECK (km_percorridos_partida >= 0),
+  desarmes_partida              INT DEFAULT 0 CHECK (desarmes_partida >= 0),
+  passes_chave_partida          INT DEFAULT 0 CHECK (passes_chave_partida >= 0),
+  minutos_jogados_partida       INT DEFAULT 0 CHECK (minutos_jogados_partida >= 0),
+  nota_partida                  NUMERIC(3,1) CHECK (nota_partida IS NULL OR (nota_partida BETWEEN 0 AND 10)),
+  reposicoes_partida            INT DEFAULT 0 CHECK (reposicoes_partida >= 0),
+  gols_sofridos_partida         INT DEFAULT 0 CHECK (gols_sofridos_partida >= 0),
+  penaltis_defendidos_partida   INT DEFAULT 0 CHECK (penaltis_defendidos_partida >= 0),
+  defesas_dificeis_partida      INT DEFAULT 0 CHECK (defesas_dificeis_partida >= 0),
   clean_sheet_partida           BOOLEAN DEFAULT FALSE,
   created_at                    TIMESTAMP DEFAULT NOW(),
   PRIMARY KEY (id_jogador, id_partida)
@@ -283,17 +299,17 @@ CREATE TABLE estatisticas (
   jogador_id            INT NOT NULL REFERENCES jogadores(id),
   clube_id              INT NOT NULL REFERENCES clubes(id),
   competicao_edicao_id  INT REFERENCES competicoes_edicoes(id),
-  jogos                 SMALLINT DEFAULT 0,
-  minutos               INT DEFAULT 0,
-  titularidades         SMALLINT DEFAULT 0,
-  gols                  SMALLINT DEFAULT 0,
-  assistencias          SMALLINT DEFAULT 0,
-  chutes                SMALLINT DEFAULT 0,
-  chutes_gol            SMALLINT DEFAULT 0,
-  interceptacoes        SMALLINT DEFAULT 0,
-  desarmes              SMALLINT DEFAULT 0,
-  amarelos              SMALLINT DEFAULT 0,
-  vermelhos             SMALLINT DEFAULT 0,
+  jogos                 SMALLINT DEFAULT 0 CHECK (jogos >= 0),
+  minutos               INT DEFAULT 0 CHECK (minutos >= 0),
+  titularidades         SMALLINT DEFAULT 0 CHECK (titularidades >= 0),
+  gols                  SMALLINT DEFAULT 0 CHECK (gols >= 0),
+  assistencias          SMALLINT DEFAULT 0 CHECK (assistencias >= 0),
+  chutes                SMALLINT DEFAULT 0 CHECK (chutes >= 0),
+  chutes_gol            SMALLINT DEFAULT 0 CHECK (chutes_gol >= 0),
+  interceptacoes        SMALLINT DEFAULT 0 CHECK (interceptacoes >= 0),
+  desarmes              SMALLINT DEFAULT 0 CHECK (desarmes >= 0),
+  amarelos              SMALLINT DEFAULT 0 CHECK (amarelos >= 0),
+  vermelhos             SMALLINT DEFAULT 0 CHECK (vermelhos >= 0),
   created_at            TIMESTAMP DEFAULT NOW(),
   UNIQUE (jogador_id, clube_id, competicao_edicao_id)
 );
@@ -305,6 +321,8 @@ CREATE INDEX idx_jogadores_pais ON jogadores(pais_id);
 CREATE INDEX idx_jogadores_empresario ON jogadores(id_empresario);
 CREATE INDEX idx_jogadores_tipo ON jogadores(tipo_jogador);
 CREATE INDEX idx_jogador_posicoes_jogador ON jogador_posicoes(jogador_id);
+CREATE INDEX idx_clube_participacoes_competicao ON clube_participacoes(competicao_edicao_id);
+CREATE INDEX idx_clube_participacoes_clube ON clube_participacoes(clube_id);
 CREATE INDEX idx_contratos_jogador ON contratos(id_jogador);
 CREATE INDEX idx_contratos_clube ON contratos(clube_id);
 CREATE INDEX idx_contratos_ativo ON contratos(ativo);
@@ -317,3 +335,4 @@ CREATE INDEX idx_relatorios_jogador ON relatorios(jogador_id);
 CREATE INDEX idx_relatorios_scout ON relatorios(scout_id);
 CREATE INDEX idx_monitora_cliente ON monitora(id_cliente);
 CREATE INDEX idx_monitora_jogador ON monitora(id_jogador);
+
