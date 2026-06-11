@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/scoutpro-project}
-    username: ${SPRING_DATASOURCE_USERNAME:scoutpro}
-    password: ${SPRING_DATASOURCE_PASSWORD:scoutpro}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${POSTGRES_DB:scoutpro-project}?sslmode=${DB_SSLMODE:disable}}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:scoutpro}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:scoutpro}}
   flyway:
     enabled: true
     locations: classpath:db/migration
