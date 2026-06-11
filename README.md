@@ -105,6 +105,19 @@ Observacoes:
   - `SPRING_DATASOURCE_PASSWORD`
   - `JWT_SECRET`
 
+Tambem ha fallback para ambientes como Azure Container Apps usando:
+- `DB_HOST`
+- `DB_PORT`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `DB_SSLMODE`
+- `JWT_SECRET`
+
+Precedencia:
+- Se `SPRING_DATASOURCE_URL` estiver definida, ela vence.
+- Caso contrario, a aplicacao monta a URL a partir de `DB_HOST`/`DB_PORT`/`POSTGRES_DB`/`DB_SSLMODE`.
+
 ## CI/CD
 
 Workflow em `.github/workflows/build-push-acr.yml` para build e push de imagem no ACR.
