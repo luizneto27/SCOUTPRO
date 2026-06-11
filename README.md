@@ -121,3 +121,8 @@ Precedencia:
 ## CI/CD
 
 Workflow em `.github/workflows/build-push-acr.yml` para build e push de imagem no ACR.
+
+Healthcheck opcional no GitHub Actions:
+- Defina a repository variable `HEALTHCHECK_URL` com a URL publicada da aplicacao.
+- Recomendado: `https://<seu-endpoint>/actuator/health`
+- O workflow fara ate 30 tentativas com intervalo de 10 segundos e falhara se nao receber HTTP `200`.
