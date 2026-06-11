@@ -12,6 +12,7 @@ concurrency:
 
 env:
   IMAGE_NAME: scoutpro-api
+  HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
 
 jobs:
   build-and-push:
@@ -37,3 +38,20 @@ jobs:
         run: |
           docker push "${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker push "${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest"
+
+      - name: Healthcheck da aplicacao publicada
+        if: ${{ env.HEALTHCHECK_URL != '' }}
+        run: |
+          echo "Validando ${HEALTHCHECK_URL}"
+          for attempt in {1..30}; do
+            status=$(curl -s -o /tmp/healthcheck-response.txt -w "%{http_code}" "${HEALTHCHECK_URL}" || true)
+            if [ "$status" = "200" ]; then
+              cat /tmp/healthcheck-response.txt
+              exit 0
+            fi
+            echo "Tentativa ${attempt}/30 retornou HTTP ${status:-000}. Aguardando..."
+            sleep 10
+          done
+          echo "Healthcheck falhou para ${HEALTHCHECK_URL}"
+          cat /tmp/healthcheck-response.txt || true
+          exit 1
