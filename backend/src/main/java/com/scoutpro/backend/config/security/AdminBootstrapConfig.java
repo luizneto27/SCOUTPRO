@@ -16,25 +16,11 @@ public class AdminBootstrapConfig {
                                             UsuarioRepository usuarioRepository,
                                             PasswordEncoder passwordEncoder) {
         return args -> {
-            if (usuarioRepository.existsByRoleAndAtivoTrue(UsuarioRole.ADMIN)) {
+            if (usuarioRepository.existsByRole(UsuarioRole.ADMIN)) {
                 return;
             }
 
             var cfg = securityProperties.getBootstrapAdmin();
-            var existingAdmin = usuarioRepository.findFirstByRoleOrderByIdAsc(UsuarioRole.ADMIN);
-
-            if (existingAdmin.isPresent()) {
-                UsuarioEntity admin = existingAdmin.get();
-                admin.setUsername(cfg.getUsername());
-                admin.setNomeUsuario(cfg.getNomeUsuario());
-                admin.setCpf(cfg.getCpf());
-                admin.setEmail(cfg.getEmail());
-                admin.setTelefone(cfg.getTelefone());
-                admin.setSenhaHash(passwordEncoder.encode(cfg.getPassword()));
-                admin.setAtivo(true);
-                usuarioRepository.save(admin);
-                return;
-            }
 
             UsuarioEntity newAdmin = new UsuarioEntity();
             newAdmin.setUsername(cfg.getUsername());
