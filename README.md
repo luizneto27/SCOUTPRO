@@ -236,6 +236,18 @@ O projeto usa Flyway como mecanismo obrigatório de evolução do schema.
 
 Neste repositório, o uso do Flyway é feito no startup da aplicação. Não há plugin Maven de migração configurado para execução separada.
 
+Schema adotado:
+
+- o projeto assume uso do schema `public` no PostgreSQL;
+- as migrations Flyway são aplicadas no `public`;
+- o mapeamento JPA também espera as tabelas no `public`.
+
+Implicação prática:
+
+- o banco local precisa manter o schema `public` disponível;
+- se o banco estiver vazio, as tabelas serão criadas pelas migrations nesse schema;
+- se o ambiente usar outro schema, a configuração atual do projeto não está preparada para isso.
+
 Localização das migrations:
 
 - `backend/src/main/resources/db/migration`

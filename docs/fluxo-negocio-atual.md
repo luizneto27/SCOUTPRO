@@ -57,9 +57,14 @@ docker compose up -d --build
 Quando a aplicacao sobe:
 
 - o banco PostgreSQL fica disponivel;
-- o Flyway aplica as migrations necessarias;
+- o Flyway aplica as migrations necessarias no schema `public`;
 - a API inicia com a configuracao de seguranca;
 - se ainda nao houver administrador, ele e criado automaticamente.
+
+Premissa atual de infraestrutura:
+
+- o ScoutPro opera hoje considerando o schema `public` como schema padrao do banco;
+- as tabelas operacionais e o historico do Flyway sao mantidos nesse schema.
 
 ## Etapa 3: administrador inicial
 

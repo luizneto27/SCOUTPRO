@@ -85,6 +85,7 @@ Estado implementado neste momento:
 - Respeitar unicidades e checks também na camada de serviço.
 - Não duplicar regras derivadas que já pertencem ao banco.
 - Quando uma coluna for gerada/calculada no banco, a aplicação deve consumir o valor persistido em vez de recalcular.
+- O projeto usa o schema PostgreSQL `public` como padrão operacional para JPA e Flyway.
 
 ## Subida local para validar mudanças
 
