@@ -1,5 +1,0 @@
-ALTER TABLE jogadores
-ALTER COLUMN pe_dominante TYPE VARCHAR(1);
-
-ALTER TABLE paises
-ALTER COLUMN sigla TYPE VARCHAR(3);

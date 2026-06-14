@@ -12,7 +12,7 @@ O repositório está organizado com foco em backend e versionamento do schema:
 - `backend/src/main/java/com/scoutpro/backend/domain`: enums e contratos de domínio já refletidos do banco.
 - `backend/src/main/java/com/scoutpro/backend/infrastructure/persistence`: entidades JPA e repositórios.
 - `backend/src/main/java/com/scoutpro/backend/infrastructure/web`: controllers e DTOs HTTP.
-- `backend/src/main/resources/db/migration`: migrations Flyway, tratadas como fonte oficial de evolução do banco.
+- `backend/src/main/resources/db/migration`: migrations Flyway geradas a partir dos SQLs oficiais em `docs/`.
 - `docs/`: documentação técnica e de contexto.
 - `AGENTS.md`: guia operacional para agentes de IA seguirem padrões e fluxo do projeto.
 
@@ -248,18 +248,19 @@ Implicação prática:
 - se o banco estiver vazio, as tabelas serão criadas pelas migrations nesse schema;
 - se o ambiente usar outro schema, a configuração atual do projeto não está preparada para isso.
 
-Localização das migrations:
+Fontes oficiais do schema:
+
+- `docs/schema_normalized.sql`
+- `docs/semantic_search_migration.sql`
+
+Localização das migrations geradas a partir desses SQLs:
 
 - `backend/src/main/resources/db/migration`
 
 Migrations atuais:
 
-- `V1__baseline.sql`: schema inicial normalizado.
-- `V2__create_usuarios.sql`: tabela de usuários.
-- `V3__adjust_temporada_type.sql`
-- `V4__adjust_char_columns_to_varchar.sql`
-- `V5__add_role_to_usuarios.sql`
-- `V6__add_check_constraint_usuarios_role.sql`
+- `V1__baseline.sql`: baseline consolidado do schema normalizado e autenticação.
+- `V2__semantic_search.sql`: extensão `vector` e estrutura de busca semântica em `jogadores`.
 
 Regras de uso:
 
