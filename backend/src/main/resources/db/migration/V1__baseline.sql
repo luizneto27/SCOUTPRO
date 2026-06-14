@@ -1,4 +1,5 @@
--- Schema normalizado (proposta)
+-- Baseline consolidado a partir de docs/schema_normalized.sql
+-- Ajustado para refletir o backend atual e a autenticacao JWT.
 
 -- =========================
 -- Tabelas de dominio/base
@@ -6,7 +7,7 @@
 CREATE TABLE paises (
   id         SERIAL PRIMARY KEY,
   nome       VARCHAR(100) NOT NULL,
-  sigla      CHAR(3) NOT NULL UNIQUE
+  sigla      VARCHAR(3) NOT NULL UNIQUE
 );
 
 CREATE TABLE posicoes (
@@ -60,6 +61,26 @@ CREATE TABLE scout_autonomo_detalhes (
 );
 
 -- =========================
+-- Autenticacao
+-- =========================
+CREATE TABLE usuarios (
+  id                  SERIAL PRIMARY KEY,
+  username            VARCHAR(80) NOT NULL UNIQUE,
+  nome_usuario        VARCHAR(120) NOT NULL,
+  cpf                 VARCHAR(14) NOT NULL UNIQUE,
+  email               VARCHAR(150) NOT NULL UNIQUE,
+  telefone            VARCHAR(20),
+  senha_hash          VARCHAR(255) NOT NULL,
+  role                VARCHAR(20) NOT NULL DEFAULT 'USER',
+  ativo               BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at          TIMESTAMP DEFAULT NOW(),
+  CONSTRAINT chk_usuarios_role CHECK (role IN ('USER', 'ADMIN'))
+);
+
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_usuarios_cpf ON usuarios(cpf);
+
+-- =========================
 -- Competicao e temporada
 -- =========================
 CREATE TABLE competicoes (
@@ -74,7 +95,7 @@ CREATE TABLE competicoes (
 CREATE TABLE competicoes_edicoes (
   id                    SERIAL PRIMARY KEY,
   competicao_id         INT NOT NULL REFERENCES competicoes(id) ON DELETE CASCADE,
-  temporada             CHAR(9) NOT NULL,
+  temporada             VARCHAR(9) NOT NULL,
   divisao               INT DEFAULT 1,
   ranking               INT,
   created_at            TIMESTAMP DEFAULT NOW(),
@@ -110,7 +131,7 @@ CREATE TABLE jogadores (
   titulos               INT DEFAULT 0,
   altura_cm             SMALLINT,
   peso_kg               SMALLINT,
-  pe_dominante          CHAR(1) CHECK (pe_dominante IN ('D', 'E', 'A')),
+  pe_dominante          VARCHAR(1) CHECK (pe_dominante IN ('D', 'E', 'A')),
   id_empresario         INT REFERENCES empresarios(id),
   ativo                 BOOLEAN DEFAULT TRUE,
   tipo_jogador          VARCHAR(20) CHECK (tipo_jogador IN ('GOLEIRO', 'JOGADOR_LINHA')) NOT NULL DEFAULT 'JOGADOR_LINHA',
@@ -170,7 +191,6 @@ CREATE TABLE contratos (
   CHECK (data_fim IS NULL OR data_fim >= data_inicio)
 );
 
--- Um unico contrato ativo por jogador
 CREATE UNIQUE INDEX uq_contrato_ativo_jogador
   ON contratos(id_jogador)
   WHERE ativo = TRUE;
@@ -314,6 +334,158 @@ CREATE TABLE estatisticas (
   UNIQUE (jogador_id, clube_id, competicao_edicao_id)
 );
 
+CREATE OR REPLACE FUNCTION fn_apply_delta_estatisticas_from_disputa(
+  p_id_jogador INT,
+  p_id_partida INT,
+  p_gols_partida INT,
+  p_finalizacoes_gol_partida INT,
+  p_desarmes_partida INT,
+  p_cartoes_amarelos_partida INT,
+  p_cartoes_vermelhos_partida INT,
+  p_minutos_jogados_partida INT,
+  p_sign INT
+)
+RETURNS VOID AS $$
+DECLARE
+  v_clube_id INT;
+  v_competicao_edicao_id INT;
+BEGIN
+  SELECT p.competicao_edicao_id
+    INTO v_competicao_edicao_id
+  FROM partidas p
+  WHERE p.id = p_id_partida;
+
+  SELECT c.clube_id
+    INTO v_clube_id
+  FROM contratos c
+  JOIN partidas p ON p.id = p_id_partida
+  WHERE c.id_jogador = p_id_jogador
+    AND c.ativo = TRUE
+    AND c.data_inicio <= p.data
+    AND (c.data_fim IS NULL OR c.data_fim >= p.data)
+  ORDER BY c.data_inicio DESC
+  LIMIT 1;
+
+  IF v_clube_id IS NULL THEN
+    RAISE EXCEPTION 'Nao foi encontrado contrato ativo/valido para o jogador % na partida %', p_id_jogador, p_id_partida;
+  END IF;
+
+  IF p_sign = 1 THEN
+    INSERT INTO estatisticas (
+      jogador_id, clube_id, competicao_edicao_id, jogos, minutos, titularidades, gols,
+      assistencias, chutes, chutes_gol, interceptacoes, desarmes, amarelos, vermelhos
+    ) VALUES (
+      p_id_jogador,
+      v_clube_id,
+      v_competicao_edicao_id,
+      1,
+      COALESCE(p_minutos_jogados_partida, 0),
+      CASE WHEN COALESCE(p_minutos_jogados_partida, 0) >= 60 THEN 1 ELSE 0 END,
+      COALESCE(p_gols_partida, 0),
+      0,
+      COALESCE(p_finalizacoes_gol_partida, 0),
+      COALESCE(p_finalizacoes_gol_partida, 0),
+      0,
+      COALESCE(p_desarmes_partida, 0),
+      COALESCE(p_cartoes_amarelos_partida, 0),
+      COALESCE(p_cartoes_vermelhos_partida, 0)
+    )
+    ON CONFLICT (jogador_id, clube_id, competicao_edicao_id)
+    DO UPDATE SET
+      jogos = estatisticas.jogos + COALESCE(EXCLUDED.jogos, 0),
+      minutos = estatisticas.minutos + COALESCE(EXCLUDED.minutos, 0),
+      titularidades = estatisticas.titularidades + COALESCE(EXCLUDED.titularidades, 0),
+      gols = estatisticas.gols + COALESCE(EXCLUDED.gols, 0),
+      assistencias = estatisticas.assistencias + COALESCE(EXCLUDED.assistencias, 0),
+      chutes = estatisticas.chutes + COALESCE(EXCLUDED.chutes, 0),
+      chutes_gol = estatisticas.chutes_gol + COALESCE(EXCLUDED.chutes_gol, 0),
+      interceptacoes = estatisticas.interceptacoes + COALESCE(EXCLUDED.interceptacoes, 0),
+      desarmes = estatisticas.desarmes + COALESCE(EXCLUDED.desarmes, 0),
+      amarelos = estatisticas.amarelos + COALESCE(EXCLUDED.amarelos, 0),
+      vermelhos = estatisticas.vermelhos + COALESCE(EXCLUDED.vermelhos, 0);
+  ELSE
+    UPDATE estatisticas
+    SET
+      jogos = jogos - 1,
+      minutos = minutos - COALESCE(p_minutos_jogados_partida, 0),
+      titularidades = titularidades - CASE WHEN COALESCE(p_minutos_jogados_partida, 0) >= 60 THEN 1 ELSE 0 END,
+      gols = gols - COALESCE(p_gols_partida, 0),
+      assistencias = assistencias - 0,
+      chutes = chutes - COALESCE(p_finalizacoes_gol_partida, 0),
+      chutes_gol = chutes_gol - COALESCE(p_finalizacoes_gol_partida, 0),
+      interceptacoes = interceptacoes - 0,
+      desarmes = desarmes - COALESCE(p_desarmes_partida, 0),
+      amarelos = amarelos - COALESCE(p_cartoes_amarelos_partida, 0),
+      vermelhos = vermelhos - COALESCE(p_cartoes_vermelhos_partida, 0)
+    WHERE jogador_id = p_id_jogador
+      AND clube_id = v_clube_id
+      AND (
+        (competicao_edicao_id = v_competicao_edicao_id)
+        OR (competicao_edicao_id IS NULL AND v_competicao_edicao_id IS NULL)
+      );
+  END IF;
+
+  DELETE FROM estatisticas e
+  WHERE e.jogador_id = p_id_jogador
+    AND e.clube_id = v_clube_id
+    AND (
+      (e.competicao_edicao_id = v_competicao_edicao_id)
+      OR (e.competicao_edicao_id IS NULL AND v_competicao_edicao_id IS NULL)
+    )
+    AND e.jogos <= 0
+    AND e.minutos <= 0
+    AND e.titularidades <= 0
+    AND e.gols <= 0
+    AND e.assistencias <= 0
+    AND e.chutes <= 0
+    AND e.chutes_gol <= 0
+    AND e.interceptacoes <= 0
+    AND e.desarmes <= 0
+    AND e.amarelos <= 0
+    AND e.vermelhos <= 0;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION fn_sync_estatisticas_from_disputa()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    PERFORM fn_apply_delta_estatisticas_from_disputa(
+      NEW.id_jogador, NEW.id_partida, NEW.gols_partida, NEW.finalizacoes_gol_partida,
+      NEW.desarmes_partida, NEW.cartoes_amarelos_partida, NEW.cartoes_vermelhos_partida,
+      NEW.minutos_jogados_partida, 1
+    );
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    PERFORM fn_apply_delta_estatisticas_from_disputa(
+      OLD.id_jogador, OLD.id_partida, OLD.gols_partida, OLD.finalizacoes_gol_partida,
+      OLD.desarmes_partida, OLD.cartoes_amarelos_partida, OLD.cartoes_vermelhos_partida,
+      OLD.minutos_jogados_partida, -1
+    );
+    RETURN OLD;
+  ELSIF TG_OP = 'UPDATE' THEN
+    PERFORM fn_apply_delta_estatisticas_from_disputa(
+      OLD.id_jogador, OLD.id_partida, OLD.gols_partida, OLD.finalizacoes_gol_partida,
+      OLD.desarmes_partida, OLD.cartoes_amarelos_partida, OLD.cartoes_vermelhos_partida,
+      OLD.minutos_jogados_partida, -1
+    );
+    PERFORM fn_apply_delta_estatisticas_from_disputa(
+      NEW.id_jogador, NEW.id_partida, NEW.gols_partida, NEW.finalizacoes_gol_partida,
+      NEW.desarmes_partida, NEW.cartoes_amarelos_partida, NEW.cartoes_vermelhos_partida,
+      NEW.minutos_jogados_partida, 1
+    );
+    RETURN NEW;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_estatisticas_from_disputa
+AFTER INSERT OR UPDATE OR DELETE ON disputa
+FOR EACH ROW
+EXECUTE FUNCTION fn_sync_estatisticas_from_disputa();
+
 -- =========================
 -- Indices
 -- =========================
@@ -335,4 +507,3 @@ CREATE INDEX idx_relatorios_jogador ON relatorios(jogador_id);
 CREATE INDEX idx_relatorios_scout ON relatorios(scout_id);
 CREATE INDEX idx_monitora_cliente ON monitora(id_cliente);
 CREATE INDEX idx_monitora_jogador ON monitora(id_jogador);
-

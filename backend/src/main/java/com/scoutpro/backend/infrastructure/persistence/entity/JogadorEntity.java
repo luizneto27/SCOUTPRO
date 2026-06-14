@@ -24,6 +24,9 @@ public class JogadorEntity extends BaseEntity {
     @Column(name = "nome_completo", length = 200)
     private String nomeCompleto;
 
+    @Column(name = "perfil_texto")
+    private String perfilTexto;
+
     @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
 

@@ -12,7 +12,7 @@ O repositório está organizado com foco em backend e versionamento do schema:
 - `backend/src/main/java/com/scoutpro/backend/domain`: enums e contratos de domínio já refletidos do banco.
 - `backend/src/main/java/com/scoutpro/backend/infrastructure/persistence`: entidades JPA e repositórios.
 - `backend/src/main/java/com/scoutpro/backend/infrastructure/web`: controllers e DTOs HTTP.
-- `backend/src/main/resources/db/migration`: migrations Flyway, tratadas como fonte oficial de evolução do banco.
+- `backend/src/main/resources/db/migration`: migrations Flyway geradas a partir dos SQLs oficiais em `docs/`.
 - `docs/`: documentação técnica e de contexto.
 - `AGENTS.md`: guia operacional para agentes de IA seguirem padrões e fluxo do projeto.
 
@@ -248,18 +248,19 @@ Implicação prática:
 - se o banco estiver vazio, as tabelas serão criadas pelas migrations nesse schema;
 - se o ambiente usar outro schema, a configuração atual do projeto não está preparada para isso.
 
-Localização das migrations:
+Fontes oficiais do schema:
+
+- `docs/schema_normalized.sql`
+- `docs/semantic_search_migration.sql`
+
+Localização das migrations geradas a partir desses SQLs:
 
 - `backend/src/main/resources/db/migration`
 
 Migrations atuais:
 
-- `V1__baseline.sql`: schema inicial normalizado.
-- `V2__create_usuarios.sql`: tabela de usuários.
-- `V3__adjust_temporada_type.sql`
-- `V4__adjust_char_columns_to_varchar.sql`
-- `V5__add_role_to_usuarios.sql`
-- `V6__add_check_constraint_usuarios_role.sql`
+- `V1__baseline.sql`: baseline consolidado do schema normalizado e autenticação.
+- `V2__semantic_search.sql`: extensão `vector` e estrutura de busca semântica em `jogadores`.
 
 Regras de uso:
 
@@ -293,9 +294,14 @@ mvn test
 
 ## Documentação complementar
 
-- [docs/README.md](docs/README.md)
-- [docs/architecture/ai/00-visao-geral.md](docs/architecture/ai/00-visao-geral.md)
-- [docs/architecture/ai/01-schema-e-regras.md](docs/architecture/ai/01-schema-e-regras.md)
-- [docs/architecture/ai/02-organizacao-backend-spring.md](docs/architecture/ai/02-organizacao-backend-spring.md)
-- [docs/fluxo-negocio-atual.md](docs/fluxo-negocio-atual.md)
-- [AGENTS.md](AGENTS.md)
+Use os documentos abaixo conforme o objetivo:
+
+- [docs/README.md](docs/README.md): índice geral da documentação disponível em `docs/`.
+- [docs/schema_normalized.sql](docs/schema_normalized.sql): schema relacional oficial do projeto, usado como base do baseline Flyway.
+- [docs/semantic_search_migration.sql](docs/semantic_search_migration.sql): estrutura oficial da camada de busca semântica com `pgvector`.
+- [docs/fluxo-negocio-atual.md](docs/fluxo-negocio-atual.md): visão de negócio ponta a ponta do que já existe hoje, incluindo autenticação e chamadas atuais da API.
+- [docs/architecture/ai/00-visao-geral.md](docs/architecture/ai/00-visao-geral.md): visão técnica geral do backend, fontes de verdade e estado atual da aplicação.
+- [docs/architecture/ai/01-schema-e-regras.md](docs/architecture/ai/01-schema-e-regras.md): regras de integridade e decisões de modelagem que devem guiar banco, domínio e API.
+- [docs/architecture/ai/02-organizacao-backend-spring.md](docs/architecture/ai/02-organizacao-backend-spring.md): organização esperada do backend Spring Boot, convenções e estratégia de evolução.
+- [docs/architecture/ai/03-skills-tecnicas-ia.md](docs/architecture/ai/03-skills-tecnicas-ia.md): checklist técnico para implementações assistidas por IA.
+- [AGENTS.md](AGENTS.md): guia operacional para agentes de IA seguirem os padrões, a ordem de leitura e o fluxo do projeto.

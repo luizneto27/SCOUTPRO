@@ -9,19 +9,22 @@ O ScoutPro é um backend Java com Spring Boot 4 e PostgreSQL. O foco atual do re
 ## Leitura obrigatória antes de codar
 
 1. `README.md`
-2. `docs/architecture/ai/00-visao-geral.md`
-3. `docs/architecture/ai/01-schema-e-regras.md`
-4. `docs/architecture/ai/02-organizacao-backend-spring.md`
-5. `backend/src/main/resources/db/migration`
+2. `docs/schema_normalized.sql`
+3. `docs/semantic_search_migration.sql`
+4. `docs/architecture/ai/00-visao-geral.md`
+5. `docs/architecture/ai/01-schema-e-regras.md`
+6. `docs/architecture/ai/02-organizacao-backend-spring.md`
+7. `backend/src/main/resources/db/migration`
 
 ## Fonte de verdade
 
 Ao implementar qualquer funcionalidade, use esta ordem de precedência:
 
-1. migrations Flyway em `backend/src/main/resources/db/migration`
-2. configuração real do backend em `backend/src/main/resources`
-3. código Java já implementado
-4. documentação em `docs/`
+1. SQLs oficiais em `docs/schema_normalized.sql` e `docs/semantic_search_migration.sql`
+2. migrations Flyway em `backend/src/main/resources/db/migration`
+3. configuração real do backend em `backend/src/main/resources`
+4. código Java já implementado
+5. documentação complementar em `docs/`
 
 Se houver conflito entre documentação e código/migration, ajuste a documentação ou o código para ficar consistente com o schema versionado.
 
