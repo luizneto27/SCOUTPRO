@@ -294,9 +294,14 @@ mvn test
 
 ## Documentação complementar
 
-- [docs/README.md](docs/README.md)
-- [docs/architecture/ai/00-visao-geral.md](docs/architecture/ai/00-visao-geral.md)
-- [docs/architecture/ai/01-schema-e-regras.md](docs/architecture/ai/01-schema-e-regras.md)
-- [docs/architecture/ai/02-organizacao-backend-spring.md](docs/architecture/ai/02-organizacao-backend-spring.md)
-- [docs/fluxo-negocio-atual.md](docs/fluxo-negocio-atual.md)
-- [AGENTS.md](AGENTS.md)
+Use os documentos abaixo conforme o objetivo:
+
+- [docs/README.md](docs/README.md): índice geral da documentação disponível em `docs/`.
+- [docs/schema_normalized.sql](docs/schema_normalized.sql): schema relacional oficial do projeto, usado como base do baseline Flyway.
+- [docs/semantic_search_migration.sql](docs/semantic_search_migration.sql): estrutura oficial da camada de busca semântica com `pgvector`.
+- [docs/fluxo-negocio-atual.md](docs/fluxo-negocio-atual.md): visão de negócio ponta a ponta do que já existe hoje, incluindo autenticação e chamadas atuais da API.
+- [docs/architecture/ai/00-visao-geral.md](docs/architecture/ai/00-visao-geral.md): visão técnica geral do backend, fontes de verdade e estado atual da aplicação.
+- [docs/architecture/ai/01-schema-e-regras.md](docs/architecture/ai/01-schema-e-regras.md): regras de integridade e decisões de modelagem que devem guiar banco, domínio e API.
+- [docs/architecture/ai/02-organizacao-backend-spring.md](docs/architecture/ai/02-organizacao-backend-spring.md): organização esperada do backend Spring Boot, convenções e estratégia de evolução.
+- [docs/architecture/ai/03-skills-tecnicas-ia.md](docs/architecture/ai/03-skills-tecnicas-ia.md): checklist técnico para implementações assistidas por IA.
+- [AGENTS.md](AGENTS.md): guia operacional para agentes de IA seguirem os padrões, a ordem de leitura e o fluxo do projeto.
