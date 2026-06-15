@@ -20,4 +20,10 @@ public class CompeticaoEdicaoEntity extends BaseEntity {
 
     @Column(nullable = false, length = 9)
     private String temporada;
+
+    @Column(nullable = true)
+    private Integer divisao;
+
+    @Column(nullable = true)
+    private Integer ranking;
 }
