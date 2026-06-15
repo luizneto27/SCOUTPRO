@@ -1,5 +1,6 @@
 package com.scoutpro.backend.application.jogador;
 
+import com.scoutpro.backend.application.common.ConflictException;
 import com.scoutpro.backend.application.common.CnpjUtils;
 import com.scoutpro.backend.application.common.ResourceNotFoundException;
 import com.scoutpro.backend.infrastructure.persistence.entity.ClubeEntity;
@@ -10,6 +11,7 @@ import com.scoutpro.backend.infrastructure.persistence.repository.ContratoReposi
 import com.scoutpro.backend.infrastructure.persistence.repository.JogadorRepository;
 import com.scoutpro.backend.infrastructure.web.jogador.ContratoRequest;
 import com.scoutpro.backend.infrastructure.web.jogador.ContratoResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,9 @@ public class ContratoService {
         ClubeEntity clube = findClubeByCnpjOrThrow(request.cnpjClube());
 
         contratoRepository.findByJogadorIdAndAtivoTrue(jogadorId).ifPresent(contratoAtual -> {
+            if (request.dataInicio().isBefore(contratoAtual.getDataInicio())) {
+                throw new IllegalArgumentException("data_inicio do novo contrato nao pode ser anterior ao contrato ativo");
+            }
             contratoAtual.setAtivo(false);
             contratoAtual.setDataFim(request.dataInicio());
             contratoRepository.saveAndFlush(contratoAtual);
@@ -48,7 +53,11 @@ public class ContratoService {
         entity.setDataFim(null);
         entity.setAtivo(true);
 
-        return toResponse(contratoRepository.save(entity));
+        try {
+            return toResponse(contratoRepository.saveAndFlush(entity));
+        } catch (DataIntegrityViolationException ex) {
+            throw new ConflictException("jogador ja possui contrato ativo");
+        }
     }
 
     private ClubeEntity findClubeByCnpjOrThrow(String cnpj) {
