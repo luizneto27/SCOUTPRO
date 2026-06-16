@@ -239,7 +239,7 @@ const PainelPrincipal = ({ onLogout }) => {
         {menuAtivo === 'atletas' && <GestaoAtletas />}
         
         {menuAtivo === 'lesoes' && <RegistroLesoes />}
-        
+
         {menuAtivo === 'estatisticas' && <EstatisticasPartida />}
         
         {menuAtivo === 'comparativo' && <ComparativoAtletas />}
@@ -247,7 +247,7 @@ const PainelPrincipal = ({ onLogout }) => {
         {menuAtivo === 'contratos' && <ClubesContratos />}      
 
         {/* OUTROS MENUS EM DESENVOLVIMENTO */}
-        {menuAtivo !== 'dashboard' && menuAtivo !== 'atletas' && menuAtivo !== 'lesoes' && menuAtivo !== 'estatisticas' && menuAtivo !== 'contratos' && (
+        {menuAtivo !== 'dashboard' && menuAtivo !== 'atletas'&& menuAtivo !== 'comparativo' && menuAtivo !== 'lesoes' && menuAtivo !== 'estatisticas' && menuAtivo !== 'contratos' && (
           <div style={styles.placeholder}>
             <h3 style={{ color: '#94a3b8' }}>Tela de {menuAtivo} em desenvolvimento...</h3>
           </div>
