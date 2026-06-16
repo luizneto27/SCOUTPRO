@@ -64,6 +64,7 @@ public class ClubeController {
     @Operation(summary = "Remove clube")
     @ApiResponse(responseCode = "204", description = "Clube removido")
     @ApiResponse(responseCode = "404", description = "Clube inexistente")
+    @ApiResponse(responseCode = "409", description = "Clube possui vinculos dependentes")
     @DeleteMapping("/{cnpj}")
     public ResponseEntity<Void> delete(@PathVariable String cnpj) {
         clubeService.delete(cnpj);
