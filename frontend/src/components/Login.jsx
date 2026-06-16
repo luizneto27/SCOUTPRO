@@ -8,6 +8,7 @@ const Login = ({ onNavigate }) => {
     console.log('Tentativa de login:', credenciais);
     // Aqui no futuro chamaremos a API de autenticação do backend
     alert('Login simulado com sucesso! Levando ao Dashboard...');
+    onNavigate('sistema'); // Temporario até autenticação ser feita no back
   };
 
   return (
