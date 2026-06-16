@@ -127,7 +127,9 @@ public class JogadorController {
 
     @Operation(summary = "Cria contrato para jogador")
     @ApiResponse(responseCode = "201", description = "Contrato criado")
+    @ApiResponse(responseCode = "400", description = "Payload invalido")
     @ApiResponse(responseCode = "404", description = "Jogador ou clube inexistente")
+    @ApiResponse(responseCode = "409", description = "Jogador ja possui contrato ativo")
     @PostMapping("/{id}/contratos")
     public ResponseEntity<ContratoResponse> createContrato(
             @PathVariable Integer id,
