@@ -130,7 +130,7 @@ const ComparativoAtletas = ({ onSessionExpired }) => {
       <div style={styles.topBar}>
         <div style={styles.headerTitle}>
           <GitCompare size={24} color="#3b82f6" />
-          <h2 style={{ color: '#fff', margin: 0, fontSize: '20px' }}>Comparativo Head-to-Head</h2>
+          <h2 style={{ color: '#ffffff', margin: 0, fontSize: '20px' }}>Comparativo Head-to-Head</h2>
         </div>
         <div style={styles.selectContainer}>
           <div style={styles.selectBox}>
@@ -241,7 +241,7 @@ const styles = {
   selectContainer: { display: 'flex', alignItems: 'center', gap: '15px', backgroundColor: '#0f172a', padding: '10px 20px', borderRadius: '8px', border: '1px solid #334155' },
   selectBox: { display: 'flex', alignItems: 'center', gap: '10px' },
   colorDot: { width: '12px', height: '12px', borderRadius: '50%' },
-  select: { backgroundColor: 'transparent', color: '#fff', border: 'none', outline: 'none', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' },
+  select: { backgroundColor: '#1e293b', color: '#fff', border: 'none', outline: 'none', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' },
   errorBox: { backgroundColor: '#7f1d1d', color: '#fecaca', padding: '12px 14px', borderRadius: '10px', border: '1px solid #ef4444' },
   loadingBox: { backgroundColor: '#0f172a', color: '#94a3b8', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' },
   mainGrid: { display: 'flex', gap: '20px', flexWrap: 'wrap' },

@@ -1,5 +1,20 @@
 package com.scoutpro.backend.application.comparativo;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.scoutpro.backend.application.common.ResourceNotFoundException;
 import com.scoutpro.backend.infrastructure.persistence.entity.EstatisticaEntity;
 import com.scoutpro.backend.infrastructure.persistence.entity.JogadorEntity;
@@ -12,20 +27,6 @@ import com.scoutpro.backend.infrastructure.persistence.repository.RelatorioRepos
 import com.scoutpro.backend.infrastructure.web.comparativo.ComparativoAtletaResponse;
 import com.scoutpro.backend.infrastructure.web.comparativo.ComparativoJogadoresResponse;
 import com.scoutpro.backend.infrastructure.web.comparativo.ComparativoRadarItemResponse;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.Period;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ComparativoService {
@@ -57,11 +58,17 @@ public class ComparativoService {
         JogadorEntity jogadorB = findJogador(jogadorBId);
 
         List<Integer> jogadorIds = List.of(jogadorAId, jogadorBId);
+        
         List<EstatisticaEntity> estatisticas = estatisticaRepository.findAll(buildSpecification(jogadorIds, competicaoEdicaoId), Sort.by("id"));
-        Map<Integer, List<EstatisticaEntity>> estatisticasPorJogador = estatisticas.stream()
-                .collect(Collectors.groupingBy(item -> item.getJogador().getId()));
+        Map<Integer, List<EstatisticaEntity>> estatisticasPorJogador = estatisticas.stream().collect(Collectors.groupingBy(item -> item.getJogador().getId()));
 
-        List<RelatorioEntity> relatorios = relatorioRepository.findByJogadorIdsAndCompeticaoEdicaoId(jogadorIds, competicaoEdicaoId);
+        List<RelatorioEntity> relatorios;
+        if (competicaoEdicaoId != null) {
+            relatorios = relatorioRepository.findByJogadorIdsAndCompeticaoEdicaoId(jogadorIds, competicaoEdicaoId);
+        } else {
+            relatorios = relatorioRepository.findByJogadorIdIn(jogadorIds); 
+        }
+        
         Map<Integer, List<RelatorioEntity>> relatoriosPorJogador = relatorios.stream()
                 .collect(Collectors.groupingBy(item -> item.getJogador().getId()));
 

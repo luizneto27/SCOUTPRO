@@ -335,7 +335,6 @@ const ClubesContratos = ({ onSessionExpired }) => {
             <span style={styles.cardTitle}>Clubes cadastrados</span>
           </div>
           <h3 style={styles.cardValue}>{clubes.length}</h3>
-          <span style={{ color: '#94a3b8', fontSize: '12px' }}>Endpoint /clubes</span>
         </div>
 
         <div style={styles.card}>
@@ -353,7 +352,6 @@ const ClubesContratos = ({ onSessionExpired }) => {
             <span style={styles.cardTitle}>Jogadores do clube</span>
           </div>
           <h3 style={styles.cardValue}>{jogadoresDoClube.length}</h3>
-          <span style={{ color: '#94a3b8', fontSize: '12px' }}>Endpoint /clubes/jogadores?cnpj=...</span>
         </div>
       </div>
 
