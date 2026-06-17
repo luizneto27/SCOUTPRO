@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,6 +21,9 @@ public class TransferenciaEntity extends BaseEntity {
 
     @Column(name = "data_transferencia", nullable = false)
     private LocalDate dataTransferencia;
+
+    @Column(name = "valor_pago", precision = 15, scale = 2)
+    private BigDecimal valorPago;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

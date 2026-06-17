@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +39,14 @@ public class CampeonatoController {
     public ResponseEntity<Page<CampeonatoResponse>> getAll(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(campeonatoService.getAll(pageable));
+    }
+
+    @Operation(summary = "Lista as edições de um campeonato")
+    @ApiResponse(responseCode = "200", description = "Lista de edições do campeonato")
+    @ApiResponse(responseCode = "404", description = "Campeonato não encontrado")
+    @GetMapping("/{id}/edicoes")
+    public ResponseEntity<List<CompeticaoEdicaoResponse>> getEdicoesByCampeonato(@PathVariable Integer id) {
+        return ResponseEntity.ok(campeonatoService.getEdicoesByCampeonato(id));
     }
 
     @Operation(summary = "Cria um novo campeonato")

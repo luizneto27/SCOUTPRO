@@ -6,39 +6,9 @@ import RegistroLesoes from './RegistroLesoes';
 import EstatisticasPartida from './EstatisticasPartida';
 import ClubesContratos from './ClubesContratos';
 import ComparativoAtletas from './ComparativoAtletas';
-import { getCurrentUser, listCampeonatos, listClubes, listJogadores } from '../lib/api';
+import { getCurrentUser, getDashboardResumo } from '../lib/api';
 
-
-// --- DADOS FALSOS (MOCKS) ---
-const dadosPerformance = [
-  { dia: '01/05', performance: 60 },
-  { dia: '02/05', performance: 35 },
-  { dia: '03/05', performance: 55 },
-  { dia: '04/05', performance: 68 },
-  { dia: '05/05', performance: 52 },
-  { dia: '06/05', performance: 48 },
-  { dia: '07/05', performance: 72 },
-];
-
-const dadosCarga = [
-  { name: 'Alta', value: 45 },
-  { name: 'Moderada', value: 35 },
-  { name: 'Baixa', value: 20 },
-];
 const CORES = ['#3b82f6', '#06b6d4', '#8b5cf6'];
-
-const atletasDestaque = [
-  { nome: 'João Silva', posicao: 'Meia', performance: 92, carga: 'Alta', status: 'Excelente', corStatus: '#10b981' },
-  { nome: 'Pedro Santos', posicao: 'Atacante', performance: 87, carga: 'Moderada', status: 'Bom', corStatus: '#3b82f6' },
-  { nome: 'Lucas Pereira', posicao: 'Zagueiro', performance: 78, carga: 'Moderada', status: 'Atenção', corStatus: '#f59e0b' },
-  { nome: 'Gabriel Costa', posicao: 'Goleiro', performance: 95, carga: 'Alta', status: 'Excelente', corStatus: '#10b981' },
-];
-
-const alertasRecentes = [
-  { id: 1, tipo: 'Carga excessiva detectada', atleta: 'João Silva', tempo: 'há 2h', cor: '#ef4444' },
-  { id: 2, tipo: 'Queda de performance', atleta: 'Lucas Pereira', tempo: 'há 4h', cor: '#f59e0b' },
-  { id: 3, tipo: 'Recuperação otimizada', atleta: 'Pedro Santos', tempo: 'há 6h', cor: '#3b82f6' },
-];
 
 const TOKEN_KEY = 'scoutpro.token';
 
@@ -47,9 +17,14 @@ const PainelPrincipal = ({ onLogout }) => {
   const [menuAtivo, setMenuAtivo] = useState('dashboard');
   const [usuario, setUsuario] = useState(null);
   const [resumo, setResumo] = useState({
-    atletas: 0,
+    atletasAtivos: 0,
     clubes: 0,
     campeonatos: 0,
+    lesoesEmRecuperacao: 0,
+    performanceMedia: [],
+    statusSaude: [],
+    atletasDestaque: [],
+    alertasRecentes: [],
   });
 
   useEffect(() => {
@@ -63,11 +38,9 @@ const PainelPrincipal = ({ onLogout }) => {
 
     const carregar = async () => {
       try {
-        const [user, jogadoresPage, clubes, campeonatosPage] = await Promise.all([
+        const [user, dashboard] = await Promise.all([
           getCurrentUser(token),
-          listJogadores(token, { size: 1 }),
-          listClubes(token),
-          listCampeonatos(token, { size: 1 }),
+          getDashboardResumo(token),
         ]);
 
         if (!ativo) {
@@ -75,11 +48,7 @@ const PainelPrincipal = ({ onLogout }) => {
         }
 
         setUsuario(user);
-        setResumo({
-          atletas: jogadoresPage?.totalElements ?? jogadoresPage?.content?.length ?? 0,
-          clubes: Array.isArray(clubes) ? clubes.length : 0,
-          campeonatos: campeonatosPage?.totalElements ?? campeonatosPage?.content?.length ?? 0,
-        });
+        setResumo(dashboard);
       } catch (error) {
         window.localStorage.removeItem(TOKEN_KEY);
         if (ativo) {
@@ -94,6 +63,26 @@ const PainelPrincipal = ({ onLogout }) => {
       ativo = false;
     };
   }, [onLogout]);
+
+  const dadosPerformance = resumo.performanceMedia?.map((item) => ({
+    dia: item.data ? new Date(`${item.data}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-',
+    performance: Number(item.valor ?? 0),
+  })) ?? [];
+
+  const dadosSaude = resumo.statusSaude?.map((item) => ({
+    name: item.label,
+    value: item.valor,
+  })) ?? [];
+
+  const getCorAlerta = (severidade) => {
+    if (severidade === 'critico') {
+      return '#ef4444';
+    }
+    if (severidade === 'positivo') {
+      return '#3b82f6';
+    }
+    return '#f59e0b';
+  };
 
   return (
     <div style={styles.container}>
@@ -167,24 +156,24 @@ const PainelPrincipal = ({ onLogout }) => {
                   <Users size={20} color="#3b82f6" />
                   <span style={styles.cardTitle}>Atletas Ativos</span>
                 </div>
-                <h3 style={styles.cardValue}>{resumo.atletas}</h3>
-                <span style={styles.cardTrend}>+12% vs período anterior</span>
+                <h3 style={styles.cardValue}>{resumo.atletasAtivos ?? 0}</h3>
+                <span style={styles.cardTrend}>Contagem real de jogadores ativos</span>
               </div>
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
                   <FileText size={20} color="#06b6d4" />
                   <span style={styles.cardTitle}>Campeonatos</span>
                 </div>
-                <h3 style={styles.cardValue}>{resumo.campeonatos}</h3>
+                <h3 style={styles.cardValue}>{resumo.campeonatos ?? 0}</h3>
                 <span style={styles.cardTrend}>Dados do endpoint /campeonatos</span>
               </div>
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
                   <Activity size={20} color="#8b5cf6" />
-                  <span style={styles.cardTitle}>Clubes</span>
+                  <span style={styles.cardTitle}>Lesões em Recuperação</span>
                 </div>
-                <h3 style={styles.cardValue}>{resumo.clubes}</h3>
-                <span style={styles.cardTrend}>Dados do endpoint /clubes</span>
+                <h3 style={styles.cardValue}>{resumo.lesoesEmRecuperacao ?? 0}</h3>
+                <span style={styles.cardTrend}>Atletas ainda indisponíveis</span>
               </div>
             </div>
 
@@ -195,7 +184,7 @@ const PainelPrincipal = ({ onLogout }) => {
                 <div style={styles.cardHeaderBetween}>
                   <span style={styles.sectionTitle}>Performance Média</span>
                   <select style={styles.select}>
-                    <option>Últimos 7 dias</option>
+                    <option>Últimos 7 registros</option>
                   </select>
                 </div>
                 <div style={{ height: '250px', width: '100%', marginTop: '15px' }}>
@@ -213,12 +202,12 @@ const PainelPrincipal = ({ onLogout }) => {
 
               {/* Gráfico de Rosca */}
               <div style={{ ...styles.card, flex: 1 }}>
-                <span style={styles.sectionTitle}>Carga de Treino</span>
+                <span style={styles.sectionTitle}>Status de Saúde</span>
                 <div style={{ height: '250px', width: '100%', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={dadosCarga} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
-                        {dadosCarga.map((entry, index) => (
+                      <Pie data={dadosSaude} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                        {dadosSaude.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={CORES[index % CORES.length]} />
                         ))}
                       </Pie>
@@ -226,8 +215,8 @@ const PainelPrincipal = ({ onLogout }) => {
                     </PieChart>
                   </ResponsiveContainer>
                   <div style={styles.donutCenterText}>
-                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>832</span>
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>Carga total</span>
+                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>{resumo.clubes ?? 0}</span>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>Clubes</span>
                   </div>
                 </div>
               </div>
@@ -243,23 +232,21 @@ const PainelPrincipal = ({ onLogout }) => {
                     <tr style={styles.tableHeader}>
                       <th style={styles.th}>Atleta</th>
                       <th style={styles.th}>Posição</th>
-                      <th style={styles.th}>Performance</th>
-                      <th style={styles.th}>Carga de Treino</th>
-                      <th style={styles.th}>Status</th>
+                      <th style={styles.th}>Clube</th>
+                      <th style={styles.th}>Gols</th>
+                      <th style={styles.th}>Assistências</th>
+                      <th style={styles.th}>Índice</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {atletasDestaque.map((atleta, index) => (
-                      <tr key={index} style={styles.tableRow}>
+                    {(resumo.atletasDestaque ?? []).map((atleta) => (
+                      <tr key={atleta.jogadorId} style={styles.tableRow}>
                         <td style={styles.tdBold}>{atleta.nome}</td>
                         <td style={styles.td}>{atleta.posicao}</td>
-                        <td style={styles.tdBold}>{atleta.performance}</td>
-                        <td style={styles.td}>{atleta.carga}</td>
-                        <td style={styles.td}>
-                          <span style={{ color: atleta.corStatus, border: `1px solid ${atleta.corStatus}40`, padding: '4px 8px', borderRadius: '12px', fontSize: '12px' }}>
-                            {atleta.status}
-                          </span>
-                        </td>
+                        <td style={styles.td}>{atleta.clubeNome}</td>
+                        <td style={styles.tdBold}>{atleta.gols}</td>
+                        <td style={styles.tdBold}>{atleta.assistencias}</td>
+                        <td style={styles.tdBold}>{atleta.indicePerformance}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -270,12 +257,14 @@ const PainelPrincipal = ({ onLogout }) => {
               <div style={{ ...styles.card, flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <span style={styles.sectionTitle}>Alertas Recentes</span>
                 <div style={styles.alertsContainer}>
-                  {alertasRecentes.map((alerta) => (
-                    <div key={alerta.id} style={styles.alertItem}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: alerta.cor, marginTop: '6px' }}></div>
+                  {(resumo.alertasRecentes ?? []).map((alerta, index) => (
+                    <div key={`${alerta.tipo}-${alerta.atleta}-${index}`} style={styles.alertItem}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: getCorAlerta(alerta.severidade), marginTop: '6px' }}></div>
                       <div>
                         <div style={{ color: '#fff', fontSize: '14px' }}>{alerta.tipo}</div>
-                        <div style={{ color: '#94a3b8', fontSize: '12px' }}>{alerta.atleta} • {alerta.tempo}</div>
+                        <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+                          {alerta.atleta} • {alerta.descricao} • {alerta.data ? new Date(`${alerta.data}T00:00:00`).toLocaleDateString('pt-BR') : '-'}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -290,11 +279,11 @@ const PainelPrincipal = ({ onLogout }) => {
         {/* --- TELAS PLUGADAS AQUI --- */}
         {menuAtivo === 'atletas' && <GestaoAtletas onSessionExpired={onLogout} />}
         
-        {menuAtivo === 'lesoes' && <RegistroLesoes />}
+        {menuAtivo === 'lesoes' && <RegistroLesoes onSessionExpired={onLogout} />}
 
         {menuAtivo === 'estatisticas' && <EstatisticasPartida onSessionExpired={onLogout} />}
         
-        {menuAtivo === 'comparativo' && <ComparativoAtletas />}
+        {menuAtivo === 'comparativo' && <ComparativoAtletas onSessionExpired={onLogout} />}
 
         {menuAtivo === 'contratos' && <ClubesContratos onSessionExpired={onLogout} />}      
 

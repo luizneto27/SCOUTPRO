@@ -101,6 +101,14 @@ export function getCurrentUser(token) {
   });
 }
 
+export function getDashboardResumo(token) {
+  return request('/dashboard/resumo', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
 export function listJogadores(token, params = {}) {
   return request(`/jogadores${queryString(params)}`, {
     headers: {
@@ -183,12 +191,36 @@ export function listClubeJogadores(token, cnpj) {
   });
 }
 
+export function listClubeContratos(token, cnpj) {
+  return request(`/clubes/${normalizeCnpj(cnpj)}/contratos`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function listClubeTransferencias(token, cnpj) {
+  return request(`/clubes/${normalizeCnpj(cnpj)}/transferencias`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
 export function listCampeonatos(token, params = {}) {
   return request(`/campeonatos${queryString(params)}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   }).then(normalizePageResponse);
+}
+
+export function listCompeticaoEdicoes(token, campeonatoId) {
+  return request(`/campeonatos/${campeonatoId}/edicoes`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 }
 
 export function createCampeonato(token, payload) {
@@ -254,5 +286,123 @@ export function deletePartida(token, id) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+  });
+}
+
+export function listLesoes(token, params = {}) {
+  return request(`/lesoes${queryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function getResumoLesoes(token, params = {}) {
+  return request(`/lesoes/resumo${queryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function createLesao(token, payload) {
+  return request('/lesoes', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateLesao(token, id, payload) {
+  return request(`/lesoes/${id}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteLesao(token, id) {
+  return request(`/lesoes/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function listDisputas(token, partidaId) {
+  return request(`/partidas/${partidaId}/disputas`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function createDisputa(token, partidaId, payload) {
+  return request(`/partidas/${partidaId}/disputas`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateDisputa(token, partidaId, jogadorId, payload) {
+  return request(`/partidas/${partidaId}/disputas/${jogadorId}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteDisputa(token, partidaId, jogadorId) {
+  return request(`/partidas/${partidaId}/disputas/${jogadorId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function listEstatisticas(token, params = {}) {
+  return request(`/estatisticas${queryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function getComparativoJogadores(token, params = {}) {
+  return request(`/comparativo/jogadores${queryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function createContrato(token, jogadorId, payload) {
+  return request(`/jogadores/${jogadorId}/contratos`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createTransferencia(token, jogadorId, payload) {
+  return request(`/jogadores/${jogadorId}/transferencias`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
 }

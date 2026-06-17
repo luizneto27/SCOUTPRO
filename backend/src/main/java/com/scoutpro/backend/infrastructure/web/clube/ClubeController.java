@@ -1,6 +1,10 @@
 package com.scoutpro.backend.infrastructure.web.clube;
 
 import com.scoutpro.backend.application.clube.ClubeService;
+import com.scoutpro.backend.application.jogador.ContratoService;
+import com.scoutpro.backend.application.jogador.TransferenciaService;
+import com.scoutpro.backend.infrastructure.web.jogador.ContratoResponse;
+import com.scoutpro.backend.infrastructure.web.jogador.TransferenciaResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
@@ -24,9 +28,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ClubeController {
 
     private final ClubeService clubeService;
+    private final ContratoService contratoService;
+    private final TransferenciaService transferenciaService;
 
-    public ClubeController(ClubeService clubeService) {
+    public ClubeController(ClubeService clubeService, ContratoService contratoService, TransferenciaService transferenciaService) {
         this.clubeService = clubeService;
+        this.contratoService = contratoService;
+        this.transferenciaService = transferenciaService;
     }
 
     @Operation(summary = "Cria clube")
@@ -78,5 +86,17 @@ public class ClubeController {
     @GetMapping("/jogadores")
     public List<ClubeJogadorResponse> listJogadores(@RequestParam String cnpj) {
         return clubeService.listJogadores(cnpj);
+    }
+
+    @Operation(summary = "Lista contratos do clube")
+    @GetMapping("/{cnpj}/contratos")
+    public List<ContratoResponse> listContratos(@PathVariable String cnpj) {
+        return contratoService.listByClube(cnpj);
+    }
+
+    @Operation(summary = "Lista transferencias do clube")
+    @GetMapping("/{cnpj}/transferencias")
+    public List<TransferenciaResponse> listTransferencias(@PathVariable String cnpj) {
+        return transferenciaService.listByClube(cnpj);
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -37,8 +38,9 @@ public class PartidaController {
     @GetMapping("/campeonatos/{id}/partidas")
     public ResponseEntity<Page<PartidaResponse>> getByCampeonato(
             @PathVariable Integer id,
+            @RequestParam(required = false) Integer competicaoEdicaoId,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(partidaService.getByCampeonato(id, pageable));
+        return ResponseEntity.ok(partidaService.getByCampeonato(id, competicaoEdicaoId, pageable));
     }
 
     @Operation(summary = "Cria uma nova partida")

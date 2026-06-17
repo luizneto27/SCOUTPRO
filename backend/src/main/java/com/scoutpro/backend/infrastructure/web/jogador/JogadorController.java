@@ -2,6 +2,7 @@ package com.scoutpro.backend.infrastructure.web.jogador;
 
 import com.scoutpro.backend.application.jogador.JogadorService;
 import com.scoutpro.backend.application.jogador.ContratoService;
+import com.scoutpro.backend.application.jogador.TransferenciaService;
 import com.scoutpro.backend.domain.enums.TipoJogador;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,10 +27,12 @@ public class JogadorController {
 
     private final JogadorService jogadorService;
     private final ContratoService contratoService;
+    private final TransferenciaService transferenciaService;
 
-    public JogadorController(JogadorService jogadorService, ContratoService contratoService) {
+    public JogadorController(JogadorService jogadorService, ContratoService contratoService, TransferenciaService transferenciaService) {
         this.jogadorService = jogadorService;
         this.contratoService = contratoService;
+        this.transferenciaService = transferenciaService;
     }
 
     @Operation(summary = "Cria jogador")
@@ -136,5 +139,27 @@ public class JogadorController {
             @Valid @RequestBody ContratoRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(contratoService.create(id, request));
+    }
+
+    @Operation(summary = "Lista contratos do jogador")
+    @GetMapping("/{id}/contratos")
+    public java.util.List<ContratoResponse> listContratos(@PathVariable Integer id) {
+        return contratoService.listByJogador(id);
+    }
+
+    @Operation(summary = "Lista transferencias do jogador")
+    @GetMapping("/{id}/transferencias")
+    public java.util.List<TransferenciaResponse> listTransferencias(@PathVariable Integer id) {
+        return transferenciaService.listByJogador(id);
+    }
+
+    @Operation(summary = "Cria transferencia do jogador")
+    @ApiResponse(responseCode = "201", description = "Transferencia criada")
+    @PostMapping("/{id}/transferencias")
+    public ResponseEntity<TransferenciaResponse> createTransferencia(
+            @PathVariable Integer id,
+            @Valid @RequestBody TransferenciaRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(transferenciaService.create(id, request));
     }
 }

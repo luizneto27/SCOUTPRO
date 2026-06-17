@@ -1,6 +1,7 @@
 package com.scoutpro.backend.application.partida;
 
 import com.scoutpro.backend.infrastructure.persistence.entity.CompeticaoEdicaoEntity;
+import com.scoutpro.backend.infrastructure.persistence.entity.CompeticaoEntity;
 import com.scoutpro.backend.infrastructure.persistence.entity.PartidaEntity;
 import com.scoutpro.backend.infrastructure.persistence.repository.CompeticaoEdicaoRepository;
 import com.scoutpro.backend.infrastructure.persistence.repository.PartidaRepository;
@@ -43,11 +44,16 @@ class PartidaServiceTest {
     private PartidaRequest partidaRequest;
     private CompeticaoEdicaoEntity competicaoEdicaoEntity;
     private PartidaEntity partidaEntity;
+    private CompeticaoEntity competicaoEntity;
 
     @BeforeEach
     void setUp() {
+        competicaoEntity = new CompeticaoEntity();
+        competicaoEntity.setId(1);
+
         competicaoEdicaoEntity = new CompeticaoEdicaoEntity();
         competicaoEdicaoEntity.setId(10);
+        competicaoEdicaoEntity.setCompeticao(competicaoEntity);
 
         partidaRequest = new PartidaRequest(
                 LocalDate.of(2024, 1, 1),
@@ -95,7 +101,7 @@ class PartidaServiceTest {
 
         when(partidaRepository.findByCompeticaoEdicaoCompeticaoId(1, pageable)).thenReturn(page);
 
-        Page<PartidaResponse> response = partidaService.getByCampeonato(1, pageable);
+        Page<PartidaResponse> response = partidaService.getByCampeonato(1, null, pageable);
 
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
@@ -104,6 +110,55 @@ class PartidaServiceTest {
         assertEquals(competicaoEdicaoEntity.getId(), response.getContent().get(0).competicaoEdicaoId());
 
         verify(partidaRepository, times(1)).findByCompeticaoEdicaoCompeticaoId(1, pageable);
+    }
+
+    @Test
+    @DisplayName("Should list partidas by competicao edicao id when filter is provided")
+    void testGetByCampeonato_WithCompeticaoEdicaoFilter_Success() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<PartidaEntity> page = new PageImpl<>(List.of(partidaEntity), pageable, 1);
+
+        when(competicaoEdicaoRepository.findById(10)).thenReturn(Optional.of(competicaoEdicaoEntity));
+        when(partidaRepository.findByCompeticaoEdicaoId(10, pageable)).thenReturn(page);
+
+        Page<PartidaResponse> response = partidaService.getByCampeonato(1, 10, pageable);
+
+        assertNotNull(response);
+        assertEquals(1, response.getTotalElements());
+        assertEquals(10, response.getContent().get(0).competicaoEdicaoId());
+
+        verify(competicaoEdicaoRepository, times(1)).findById(10);
+        verify(partidaRepository, times(1)).findByCompeticaoEdicaoId(10, pageable);
+        verify(partidaRepository, never()).findByCompeticaoEdicaoCompeticaoId(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw EntityNotFoundException when competicao edicao filter does not exist")
+    void testGetByCampeonato_WithCompeticaoEdicaoFilter_NotFound() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(competicaoEdicaoRepository.findById(999)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> partidaService.getByCampeonato(1, 999, pageable));
+
+        verify(competicaoEdicaoRepository, times(1)).findById(999);
+        verify(partidaRepository, never()).findByCompeticaoEdicaoId(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw EntityNotFoundException when competicao edicao does not belong to campeonato")
+    void testGetByCampeonato_WithCompeticaoEdicaoFilter_FromAnotherCampeonato() {
+        Pageable pageable = PageRequest.of(0, 20);
+        CompeticaoEntity outraCompeticao = new CompeticaoEntity();
+        outraCompeticao.setId(2);
+        competicaoEdicaoEntity.setCompeticao(outraCompeticao);
+
+        when(competicaoEdicaoRepository.findById(10)).thenReturn(Optional.of(competicaoEdicaoEntity));
+
+        assertThrows(EntityNotFoundException.class, () -> partidaService.getByCampeonato(1, 10, pageable));
+
+        verify(competicaoEdicaoRepository, times(1)).findById(10);
+        verify(partidaRepository, never()).findByCompeticaoEdicaoId(any(), any());
+        verify(partidaRepository, never()).findByCompeticaoEdicaoCompeticaoId(any(), any());
     }
 
     @Test
