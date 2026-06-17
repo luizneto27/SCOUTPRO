@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Login from './components/Login';
 import CadastroUsuario from './components/CadastroUsuario';
-import Dashboard from './components/Dashboard';
+import PainelPrincipal from './components/PainelPrincipal';
 
 function normalizePath(pathname) {
   if (!pathname || pathname === '/') {
@@ -48,7 +48,7 @@ function App() {
   }
 
   if (pathname === '/dashboard') {
-    return <Dashboard onNavigate={navigate} />;
+    return <PainelPrincipal onLogout={() => navigate('/login', { replace: true })} />;
   }
 
   return <Login onNavigate={navigate} />;

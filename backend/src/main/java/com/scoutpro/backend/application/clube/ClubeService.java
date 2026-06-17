@@ -34,7 +34,7 @@ public class ClubeService {
     @Transactional
     public ClubeResponse create(ClubeRequest request) {
         String cnpj = normalizeCnpjOrFail(request.cnpj());
-        if (clubeRepository.existsByCnpj(cnpj)) {
+        if (clubeRepository.existsByNormalizedCnpj(cnpj)) {
             throw new ConflictException("cnpj ja cadastrado");
         }
 
@@ -64,7 +64,8 @@ public class ClubeService {
     public ClubeResponse update(String currentCnpj, ClubeRequest request) {
         ClubeEntity entity = findClubeByCnpjOrThrow(currentCnpj);
         String newCnpj = normalizeCnpjOrFail(request.cnpj());
-        if (!entity.getCnpj().equals(newCnpj) && clubeRepository.existsByCnpj(newCnpj)) {
+        if (!CnpjUtils.normalize(entity.getCnpj()).equals(newCnpj)
+                && clubeRepository.existsByNormalizedCnpjAndIdNot(newCnpj, entity.getId())) {
             throw new ConflictException("cnpj ja cadastrado");
         }
 
@@ -81,7 +82,8 @@ public class ClubeService {
     public void delete(String cnpj) {
         ClubeEntity entity = findClubeByCnpjOrThrow(cnpj);
         try {
-            clubeRepository.deleteAndFlush(entity);
+            clubeRepository.delete(entity);
+            clubeRepository.flush();
         } catch (DataIntegrityViolationException ex) {
             throw new ConflictException("clube possui vinculos dependentes");
         }
@@ -105,7 +107,7 @@ public class ClubeService {
 
     private ClubeEntity findClubeByCnpjOrThrow(String cnpj) {
         String normalizedCnpj = normalizeCnpjOrFail(cnpj);
-        return clubeRepository.findByCnpj(normalizedCnpj)
+        return clubeRepository.findByNormalizedCnpj(normalizedCnpj)
                 .orElseThrow(() -> new ResourceNotFoundException("clube nao encontrado"));
     }
 
