@@ -1,82 +1,176 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { GitCompare, Info } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { getComparativoJogadores, isAuthError, listJogadores } from '../lib/api';
 
-// Mocks unificados com Atributos Gerais para facilitar a comparação no mesmo gráfico
-const atletasDb = [
-  { id: 1, nome: 'João Silva', posicao: 'Meio-Campo', idade: 24, valor: '€ 15M', jogos: 32, gols: 8, assistencias: 12, passes: '88%', atributos: { Ritmo: 75, Chute: 80, Passe: 88, Drible: 85, Defesa: 65, Fisico: 72 } },
-  { id: 2, nome: 'Pedro Santos', posicao: 'Atacante', idade: 21, valor: '€ 22M', jogos: 28, gols: 18, assistencias: 4, passes: '78%', atributos: { Ritmo: 92, Chute: 89, Passe: 70, Drible: 86, Defesa: 35, Fisico: 75 } },
-  { id: 3, nome: 'Lucas Pereira', posicao: 'Zagueiro', idade: 30, valor: '€ 4M', jogos: 41, gols: 2, assistencias: 1, passes: '91%', atributos: { Ritmo: 60, Chute: 45, Passe: 65, Drible: 55, Defesa: 88, Fisico: 90 } },
-  { id: 4, nome: 'Gabriel Costa', posicao: 'Goleiro', idade: 28, valor: '€ 8.5M', jogos: 38, gols: 0, assistencias: 0, passes: '65%', atributos: { Ritmo: 40, Chute: 30, Passe: 65, Drible: 45, Defesa: 85, Fisico: 78 } }
-];
+const TOKEN_KEY = 'scoutpro.token';
 
-const ComparativoAtletas = () => {
-  const [atleta1Id, setAtleta1Id] = useState(1);
-  const [atleta2Id, setAtleta2Id] = useState(2);
+const ComparativoAtletas = ({ onSessionExpired }) => {
+  const [atletas, setAtletas] = useState([]);
+  const [atleta1Id, setAtleta1Id] = useState('');
+  const [atleta2Id, setAtleta2Id] = useState('');
+  const [comparativo, setComparativo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Busca os objetos completos dos atletas selecionados
-  const atleta1 = atletasDb.find(a => a.id === atleta1Id);
-  const atleta2 = atletasDb.find(a => a.id === atleta2Id);
+  useEffect(() => {
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setLoading(false);
+      onSessionExpired?.();
+      return;
+    }
 
-  // Memoiza (salva na memória) a formatação dos dados para o Recharts ler corretamente
+    let ativo = true;
+    const carregarAtletas = async () => {
+      try {
+        const data = await listJogadores(token, { size: 200 });
+        if (!ativo) {
+          return;
+        }
+        const itens = data?.content ?? [];
+        setAtletas(itens);
+        if (itens.length >= 2) {
+          setAtleta1Id(String(itens[0].id));
+          setAtleta2Id(String(itens[1].id));
+        }
+        setError('');
+      } catch (err) {
+        if (isAuthError(err)) {
+          onSessionExpired?.();
+        } else if (ativo) {
+          setError(err.message || 'Falha ao carregar atletas.');
+        }
+      }
+    };
+
+    carregarAtletas();
+
+    return () => {
+      ativo = false;
+    };
+  }, [onSessionExpired]);
+
+  useEffect(() => {
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    if (!token || !atleta1Id || !atleta2Id) {
+      setLoading(false);
+      return;
+    }
+
+    if (atleta1Id === atleta2Id) {
+      setComparativo(null);
+      setLoading(false);
+      setError('Selecione dois atletas diferentes para comparar.');
+      return;
+    }
+
+    let ativo = true;
+    setLoading(true);
+
+    const carregarComparativo = async () => {
+      try {
+        const data = await getComparativoJogadores(token, {
+          jogadorAId: atleta1Id,
+          jogadorBId: atleta2Id,
+        });
+        if (!ativo) {
+          return;
+        }
+        setComparativo(data);
+        setError('');
+      } catch (err) {
+        if (isAuthError(err)) {
+          onSessionExpired?.();
+        } else if (ativo) {
+          setError(err.message || 'Falha ao carregar comparativo.');
+        }
+      } finally {
+        if (ativo) {
+          setLoading(false);
+        }
+      }
+    };
+
+    carregarComparativo();
+
+    return () => {
+      ativo = false;
+    };
+  }, [atleta1Id, atleta2Id, onSessionExpired]);
+
+  const atleta1 = comparativo?.atletaA;
+  const atleta2 = comparativo?.atletaB;
+
   const dadosGrafico = useMemo(() => {
-    const chaves = ['Ritmo', 'Chute', 'Passe', 'Drible', 'Defesa', 'Fisico'];
-    return chaves.map(chave => ({
-      subject: chave,
-      [atleta1.nome]: atleta1.atributos[chave],
-      [atleta2.nome]: atleta2.atributos[chave],
+    if (!comparativo?.radar || !atleta1 || !atleta2) {
+      return [];
+    }
+
+    return comparativo.radar.map((item) => ({
+      subject: item.subject,
+      [atleta1.nome]: Number(item.valorAtletaA ?? 0),
+      [atleta2.nome]: Number(item.valorAtletaB ?? 0),
     }));
-  }, [atleta1, atleta2]);
+  }, [comparativo, atleta1, atleta2]);
+
+  const formatCurrency = (value) => {
+    if (value == null) {
+      return '-';
+    }
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
   return (
     <div style={styles.container}>
-      
-      {/* Cabeçalho de Seleção */}
       <div style={styles.topBar}>
         <div style={styles.headerTitle}>
           <GitCompare size={24} color="#3b82f6" />
           <h2 style={{ color: '#fff', margin: 0, fontSize: '20px' }}>Comparativo Head-to-Head</h2>
         </div>
-        
         <div style={styles.selectContainer}>
           <div style={styles.selectBox}>
             <div style={{...styles.colorDot, backgroundColor: '#3b82f6'}}></div>
-            <select style={styles.select} value={atleta1Id} onChange={(e) => setAtleta1Id(Number(e.target.value))}>
-              {atletasDb.map(a => <option key={a.id} value={a.id}>{a.nome} ({a.posicao})</option>)}
+            <select style={styles.select} value={atleta1Id} onChange={(e) => setAtleta1Id(e.target.value)}>
+              {atletas.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
             </select>
           </div>
           <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>VS</span>
           <div style={styles.selectBox}>
             <div style={{...styles.colorDot, backgroundColor: '#10b981'}}></div>
-            <select style={styles.select} value={atleta2Id} onChange={(e) => setAtleta2Id(Number(e.target.value))}>
-              {atletasDb.map(a => <option key={a.id} value={a.id}>{a.nome} ({a.posicao})</option>)}
+            <select style={styles.select} value={atleta2Id} onChange={(e) => setAtleta2Id(e.target.value)}>
+              {atletas.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
             </select>
           </div>
         </div>
       </div>
 
+      {error ? <div style={styles.errorBox}>{error}</div> : null}
+      {loading ? <div style={styles.loadingBox}>Carregando comparativo...</div> : null}
+
       <div style={styles.mainGrid}>
-        
-        {/* Gráfico de Radar Sobreposto */}
         <div style={styles.chartCard}>
-          <h3 style={styles.cardTitle}>Cruzamento de Atributos</h3>
+          <h3 style={styles.cardTitle}>Cruzamento de Relatórios</h3>
           <div style={{ width: '100%', height: '350px', marginTop: '20px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="75%" data={dadosGrafico}>
                 <PolarGrid stroke="#334155" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }} />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                
-                <Radar name={atleta1.nome} dataKey={atleta1.nome} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
-                <Radar name={atleta2.nome} dataKey={atleta2.nome} stroke="#10b981" fill="#10b981" fillOpacity={0.5} />
+
+                {atleta1 && <Radar name={atleta1.nome} dataKey={atleta1.nome} stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />}
+                {atleta2 && <Radar name={atleta2.nome} dataKey={atleta2.nome} stroke="#10b981" fill="#10b981" fillOpacity={0.5} />}
               </RadarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Tabela de Comparação Direta */}
         <div style={styles.tableCard}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
             <Info size={20} color="#f59e0b" />
@@ -86,39 +180,49 @@ const ComparativoAtletas = () => {
           <table style={styles.table}>
             <tbody>
               <tr style={styles.tableRow}>
-                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1.idade}</td>
+                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1?.idade ?? '-'}</td>
                 <td style={styles.tdLabel}>Idade</td>
-                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2.idade}</td>
+                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2?.idade ?? '-'}</td>
               </tr>
               <tr style={styles.tableRow}>
-                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1.posicao}</td>
+                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1?.posicao ?? '-'}</td>
                 <td style={styles.tdLabel}>Posição</td>
-                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2.posicao}</td>
+                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2?.posicao ?? '-'}</td>
               </tr>
               <tr style={styles.tableRow}>
-                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1.jogos}</td>
-                <td style={styles.tdLabel}>Jogos na Temporada</td>
-                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2.jogos}</td>
+                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1?.clubeNome ?? '-'}</td>
+                <td style={styles.tdLabel}>Clube</td>
+                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2?.clubeNome ?? '-'}</td>
               </tr>
               <tr style={styles.tableRow}>
-                <td style={{...styles.tdValor1, fontWeight: 'bold'}}>{atleta1.gols}</td>
+                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1?.jogos ?? 0}</td>
+                <td style={styles.tdLabel}>Jogos Agregados</td>
+                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2?.jogos ?? 0}</td>
+              </tr>
+              <tr style={styles.tableRow}>
+                <td style={{...styles.tdValor1, fontWeight: 'bold'}}>{atleta1?.gols ?? 0}</td>
                 <td style={styles.tdLabel}>Gols</td>
-                <td style={{...styles.tdValor2, fontWeight: 'bold'}}>{atleta2.gols}</td>
+                <td style={{...styles.tdValor2, fontWeight: 'bold'}}>{atleta2?.gols ?? 0}</td>
               </tr>
               <tr style={styles.tableRow}>
-                <td style={{...styles.tdValor1, fontWeight: 'bold'}}>{atleta1.assistencias}</td>
+                <td style={{...styles.tdValor1, fontWeight: 'bold'}}>{atleta1?.assistencias ?? 0}</td>
                 <td style={styles.tdLabel}>Assistências</td>
-                <td style={{...styles.tdValor2, fontWeight: 'bold'}}>{atleta2.assistencias}</td>
+                <td style={{...styles.tdValor2, fontWeight: 'bold'}}>{atleta2?.assistencias ?? 0}</td>
               </tr>
               <tr style={styles.tableRow}>
-                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1.passes}</td>
-                <td style={styles.tdLabel}>Acerto de Passes</td>
-                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2.passes}</td>
+                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1?.desarmes ?? 0}</td>
+                <td style={styles.tdLabel}>Desarmes</td>
+                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2?.desarmes ?? 0}</td>
               </tr>
               <tr style={styles.tableRow}>
-                <td style={{...styles.tdValor1, color: '#f59e0b'}}>{atleta1.valor}</td>
+                <td style={{...styles.tdValor1, color: '#3b82f6'}}>{atleta1?.minutos ?? 0}</td>
+                <td style={styles.tdLabel}>Minutos</td>
+                <td style={{...styles.tdValor2, color: '#10b981'}}>{atleta2?.minutos ?? 0}</td>
+              </tr>
+              <tr style={styles.tableRow}>
+                <td style={{...styles.tdValor1, color: '#f59e0b'}}>{formatCurrency(atleta1?.valorMercado)}</td>
                 <td style={styles.tdLabel}>Valor de Mercado</td>
-                <td style={{...styles.tdValor2, color: '#f59e0b'}}>{atleta2.valor}</td>
+                <td style={{...styles.tdValor2, color: '#f59e0b'}}>{formatCurrency(atleta2?.valorMercado)}</td>
               </tr>
             </tbody>
           </table>
@@ -138,6 +242,8 @@ const styles = {
   selectBox: { display: 'flex', alignItems: 'center', gap: '10px' },
   colorDot: { width: '12px', height: '12px', borderRadius: '50%' },
   select: { backgroundColor: 'transparent', color: '#fff', border: 'none', outline: 'none', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' },
+  errorBox: { backgroundColor: '#7f1d1d', color: '#fecaca', padding: '12px 14px', borderRadius: '10px', border: '1px solid #ef4444' },
+  loadingBox: { backgroundColor: '#0f172a', color: '#94a3b8', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' },
   mainGrid: { display: 'flex', gap: '20px', flexWrap: 'wrap' },
   chartCard: { flex: 2, backgroundColor: '#1e293b', padding: '25px', borderRadius: '12px', border: '1px solid #334155', minWidth: '400px' },
   tableCard: { flex: 1, backgroundColor: '#1e293b', padding: '25px', borderRadius: '12px', border: '1px solid #334155', minWidth: '300px' },

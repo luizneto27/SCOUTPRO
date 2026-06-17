@@ -31,5 +31,32 @@ public class EstatisticaEntity extends BaseEntity {
 
     @Column(nullable = false)
     private Integer minutos = 0;
+
+    @Column(nullable = false)
+    private Short titularidades = 0;
+
+    @Column(nullable = false)
+    private Short gols = 0;
+
+    @Column(nullable = false)
+    private Short assistencias = 0;
+
+    @Column(nullable = false)
+    private Short chutes = 0;
+
+    @Column(name = "chutes_gol", nullable = false)
+    private Short chutesGol = 0;
+
+    @Column(nullable = false)
+    private Short interceptacoes = 0;
+
+    @Column(nullable = false)
+    private Short desarmes = 0;
+
+    @Column(nullable = false)
+    private Short amarelos = 0;
+
+    @Column(nullable = false)
+    private Short vermelhos = 0;
 }
 

@@ -1,117 +1,274 @@
-import React, { useState } from 'react';
-import { Search, Plus, Activity, AlertTriangle, CheckCircle, Clock, X, Trash2 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Search, Plus, AlertTriangle, CheckCircle, Clock, Edit, RefreshCw, X, Trash2 } from 'lucide-react';
+import { createLesao, deleteLesao, getResumoLesoes, isAuthError, listJogadores, listLesoes, updateLesao } from '../lib/api';
 
-// Mocks (Dados Falsos) de Lesões
-const lesoesIniciais = [
-  { id: 1, atleta: 'João Silva', tipo: 'Torção no Tornozelo Direito', gravidade: 'Média', dataOcorrencia: '10/06/2026', previsaoRetorno: '01/07/2026', status: 'Em Tratamento' },
-  { id: 2, atleta: 'Lucas Pereira', tipo: 'Ruptura LCA (Joelho)', gravidade: 'Alta', dataOcorrencia: '15/03/2026', previsaoRetorno: '15/11/2026', status: 'Cirurgia/Fisioterapia' },
-  { id: 3, atleta: 'Pedro Santos', tipo: 'Fadiga Muscular - Coxa', gravidade: 'Baixa', dataOcorrencia: '14/06/2026', previsaoRetorno: '20/06/2026', status: 'Recuperação Leve' },
-];
+const TOKEN_KEY = 'scoutpro.token';
 
-const RegistroLesoes = () => {
+const emptyForm = {
+  id: null,
+  jogadorId: '',
+  tipoLesao: '',
+  gravidade: 'LEVE',
+  dataLesao: '',
+  tempoRecuperacao: '',
+  statusRecuperacao: 'EM_RECUPERACAO',
+};
+
+const RegistroLesoes = ({ onSessionExpired }) => {
   const [busca, setBusca] = useState('');
-  const [lesoes, setLesoes] = useState(lesoesIniciais);
-  
-  // Controle do Modal
+  const [jogadores, setJogadores] = useState([]);
+  const [lesoes, setLesoes] = useState([]);
+  const [resumo, setResumo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
-  const [formLesao, setFormLesao] = useState({ atleta: '', tipo: '', gravidade: 'Baixa', dataOcorrencia: '', previsaoRetorno: '', status: 'Em Tratamento' });
+  const [modoModal, setModoModal] = useState('novo');
+  const [formLesao, setFormLesao] = useState(emptyForm);
 
-  const handleDelete = (id) => {
-    if (window.confirm("Deseja remover este registro de lesão?")) {
-      setLesoes(lesoes.filter(lesao => lesao.id !== id));
+  const carregarDados = async () => {
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setError('Sessao expirada. Faça login novamente.');
+      onSessionExpired?.();
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [jogadoresData, lesoesData, resumoData] = await Promise.all([
+        listJogadores(token, { size: 200 }),
+        listLesoes(token),
+        getResumoLesoes(token),
+      ]);
+
+      setJogadores(jogadoresData?.content ?? []);
+      setLesoes(lesoesData ?? []);
+      setResumo(resumoData);
+      setError('');
+    } catch (err) {
+      if (isAuthError(err)) {
+        setError('Sessao expirada. Faça login novamente.');
+        onSessionExpired?.();
+      } else {
+        setError(err.message || 'Falha ao carregar lesoes.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    carregarDados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormLesao(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    const novaLesao = { ...formLesao, id: lesoes.length + 1 };
-    setLesoes([...lesoes, novaLesao]);
-    setModalAberto(false);
-    // Limpa o formulário para o próximo
-    setFormLesao({ atleta: '', tipo: '', gravidade: 'Baixa', dataOcorrencia: '', previsaoRetorno: '', status: 'Em Tratamento' });
+  const abrirNovo = () => {
+    setModoModal('novo');
+    setFormLesao(emptyForm);
+    setModalAberto(true);
   };
 
-  const lesoesFiltradas = lesoes.filter(lesao => 
-    lesao.atleta.toLowerCase().includes(busca.toLowerCase()) || 
-    lesao.tipo.toLowerCase().includes(busca.toLowerCase())
-  );
+  const abrirEditar = (lesao) => {
+    setModoModal('editar');
+    setFormLesao({
+      id: lesao.id,
+      jogadorId: String(lesao.jogadorId),
+      tipoLesao: lesao.tipoLesao ?? '',
+      gravidade: lesao.gravidade ?? 'LEVE',
+      dataLesao: lesao.dataLesao ?? '',
+      tempoRecuperacao: lesao.tempoRecuperacao != null ? String(lesao.tempoRecuperacao) : '',
+      statusRecuperacao: lesao.statusRecuperacao ?? 'EM_RECUPERACAO',
+    });
+    setModalAberto(true);
+  };
 
-  // Função para definir a cor da "etiqueta" de gravidade
+  const handleSave = async (e) => {
+    e.preventDefault();
+
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setError('Sessao expirada. Faça login novamente.');
+      onSessionExpired?.();
+      return;
+    }
+
+    const payload = {
+      jogadorId: Number(formLesao.jogadorId),
+      tipoLesao: formLesao.tipoLesao,
+      gravidade: formLesao.gravidade || null,
+      dataLesao: formLesao.dataLesao,
+      tempoRecuperacao: formLesao.tempoRecuperacao === '' ? null : Number(formLesao.tempoRecuperacao),
+      statusRecuperacao: formLesao.statusRecuperacao || null,
+    };
+
+    try {
+      if (modoModal === 'novo') {
+        await createLesao(token, payload);
+      } else {
+        await updateLesao(token, formLesao.id, payload);
+      }
+      await carregarDados();
+      setModalAberto(false);
+      setFormLesao(emptyForm);
+      setError('');
+    } catch (err) {
+      if (isAuthError(err)) {
+        setError('Sessao expirada. Faça login novamente.');
+        onSessionExpired?.();
+      } else {
+        setError(err.message || 'Falha ao salvar lesao.');
+      }
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Deseja remover este registro de lesao?')) {
+      return;
+    }
+
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setError('Sessao expirada. Faça login novamente.');
+      onSessionExpired?.();
+      return;
+    }
+
+    try {
+      await deleteLesao(token, id);
+      await carregarDados();
+      setError('');
+    } catch (err) {
+      if (isAuthError(err)) {
+        setError('Sessao expirada. Faça login novamente.');
+        onSessionExpired?.();
+      } else {
+        setError(err.message || 'Falha ao excluir lesao.');
+      }
+    }
+  };
+
+  const lesoesFiltradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) {
+      return lesoes;
+    }
+
+    return lesoes.filter((lesao) =>
+      [
+        lesao.jogadorNome,
+        lesao.tipoLesao,
+        lesao.gravidade,
+        lesao.statusRecuperacao,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(termo))
+    );
+  }, [busca, lesoes]);
+
+  const formatarData = (valor) => {
+    if (!valor) {
+      return '-';
+    }
+    const data = new Date(`${valor}T00:00:00`);
+    return Number.isNaN(data.getTime()) ? valor : data.toLocaleDateString('pt-BR');
+  };
+
+  const getLabelGravidade = (gravidade) => {
+    const labels = {
+      LEVE: 'Baixa',
+      MODERADA: 'Media',
+      GRAVE: 'Alta',
+    };
+    return labels[gravidade] || gravidade || '-';
+  };
+
+  const getLabelStatus = (status) => {
+    const labels = {
+      EM_RECUPERACAO: 'Em Recuperacao',
+      RECUPERADO: 'Recuperado',
+      RECAIDA: 'Recaida',
+    };
+    return labels[status] || status || '-';
+  };
+
   const getCorGravidade = (gravidade) => {
     switch(gravidade) {
-      case 'Alta': return { bg: '#ef444420', text: '#fca5a5', border: '#ef4444' };
-      case 'Média': return { bg: '#f59e0b20', text: '#fcd34d', border: '#f59e0b' };
+      case 'GRAVE': return { bg: '#ef444420', text: '#fca5a5', border: '#ef4444' };
+      case 'MODERADA': return { bg: '#f59e0b20', text: '#fcd34d', border: '#f59e0b' };
       default: return { bg: '#10b98120', text: '#6ee7b7', border: '#10b981' };
     }
   };
 
   return (
     <div style={styles.container}>
-      
-      {/* Cards de Resumo (KPIs de Saúde) */}
       <div style={styles.cardsGrid}>
         <div style={styles.card}>
           <div style={styles.cardHeader}>
             <AlertTriangle size={20} color="#ef4444" />
             <span style={styles.cardTitle}>No Departamento Médico</span>
           </div>
-          <h3 style={styles.cardValue}>3</h3>
+          <h3 style={styles.cardValue}>{resumo?.noDepartamentoMedico ?? 0}</h3>
           <span style={{ color: '#94a3b8', fontSize: '12px' }}>Atletas indisponíveis hoje</span>
         </div>
-        
         <div style={styles.card}>
           <div style={styles.cardHeader}>
             <Clock size={20} color="#f59e0b" />
             <span style={styles.cardTitle}>Retorno Próximo</span>
           </div>
-          <h3 style={styles.cardValue}>1</h3>
+          <h3 style={styles.cardValue}>{resumo?.retornoPrevistoProximos7Dias ?? 0}</h3>
           <span style={{ color: '#94a3b8', fontSize: '12px' }}>Previsão para os próximos 7 dias</span>
         </div>
-
         <div style={styles.card}>
           <div style={styles.cardHeader}>
             <CheckCircle size={20} color="#10b981" />
             <span style={styles.cardTitle}>Recuperados no Mês</span>
           </div>
-          <h3 style={styles.cardValue}>4</h3>
+          <h3 style={styles.cardValue}>{resumo?.recuperadasNoMes ?? 0}</h3>
           <span style={{ color: '#94a3b8', fontSize: '12px' }}>Altas médicas recentes</span>
         </div>
       </div>
 
-      {/* Barra superior de ações */}
       <div style={styles.topBar}>
         <div style={styles.searchBox}>
           <Search size={18} color="#94a3b8" />
-          <input 
-            type="text" 
-            placeholder="Buscar por atleta ou tipo de lesão..." 
+          <input
+            type="text"
+            placeholder="Buscar por atleta, tipo, gravidade ou status..."
             style={styles.searchInput}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
-        <button style={styles.addButton} onClick={() => setModalAberto(true)}>
-          <Plus size={18} /> Registrar Lesão
-        </button>
+        <div style={styles.actionsRow}>
+          <button style={styles.refreshButton} onClick={carregarDados}>
+            <RefreshCw size={16} /> Atualizar
+          </button>
+          <button style={styles.addButton} onClick={abrirNovo}>
+            <Plus size={18} /> Registrar Lesao
+          </button>
+        </div>
       </div>
 
-      {/* Tabela de Histórico */}
+      {error ? <div style={styles.errorBox}>{error}</div> : null}
+      {loading ? <div style={styles.loadingBox}>Carregando lesoes...</div> : null}
+
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
             <tr style={styles.tableHeader}>
               <th style={styles.th}>Atleta</th>
-              <th style={styles.th}>Tipo de Lesão</th>
+              <th style={styles.th}>Tipo de Lesao</th>
               <th style={styles.th}>Gravidade</th>
               <th style={styles.th}>Data Ocorrência</th>
-              <th style={styles.th}>Previsão de Retorno</th>
+              <th style={styles.th}>Previsao de Retorno</th>
               <th style={styles.th}>Status</th>
-              <th style={{...styles.th, textAlign: 'center'}}>Ações</th>
+              <th style={{...styles.th, textAlign: 'center'}}>Acoes</th>
             </tr>
           </thead>
           <tbody>
@@ -119,17 +276,20 @@ const RegistroLesoes = () => {
               const cores = getCorGravidade(lesao.gravidade);
               return (
                 <tr key={lesao.id} style={styles.tableRow}>
-                  <td style={styles.tdBold}>{lesao.atleta}</td>
-                  <td style={styles.td}>{lesao.tipo}</td>
+                  <td style={styles.tdBold}>{lesao.jogadorNome}</td>
+                  <td style={styles.td}>{lesao.tipoLesao}</td>
                   <td style={styles.td}>
                     <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', backgroundColor: cores.bg, color: cores.text, border: `1px solid ${cores.border}50` }}>
-                      {lesao.gravidade}
+                      {getLabelGravidade(lesao.gravidade)}
                     </span>
                   </td>
-                  <td style={styles.td}>{lesao.dataOcorrencia}</td>
-                  <td style={styles.td}>{lesao.previsaoRetorno}</td>
-                  <td style={styles.td}>{lesao.status}</td>
+                  <td style={styles.td}>{formatarData(lesao.dataLesao)}</td>
+                  <td style={styles.td}>{formatarData(lesao.dataPrevistaRetorno)}</td>
+                  <td style={styles.td}>{getLabelStatus(lesao.statusRecuperacao)}</td>
                   <td style={styles.tdActions}>
+                    <button style={styles.actionBtn} title="Editar" onClick={() => abrirEditar(lesao)}>
+                      <Edit size={18} color="#10b981" />
+                    </button>
                     <button style={styles.actionBtn} title="Remover Registro" onClick={() => handleDelete(lesao.id)}>
                       <Trash2 size={18} color="#ef4444" />
                     </button>
@@ -137,67 +297,73 @@ const RegistroLesoes = () => {
                 </tr>
               )
             })}
+            {lesoesFiltradas.length === 0 && (
+              <tr>
+                <td colSpan="7" style={styles.emptyState}>
+                  Nenhuma lesao encontrada.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* MODAL DE REGISTRO */}
       {modalAberto && (
         <div style={styles.modalOverlay}>
           <form onSubmit={handleSave} style={styles.modalContent}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>Registrar Nova Lesão</h3>
+              <h3 style={styles.modalTitle}>{modoModal === 'novo' ? 'Registrar Nova Lesao' : `Editar Lesao #${formLesao.id}`}</h3>
               <button type="button" style={styles.closeBtn} onClick={() => setModalAberto(false)}>
                 <X size={24} color="#94a3b8" />
               </button>
             </div>
-            
             <div style={styles.modalBody}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                
                 <div>
                   <label style={styles.fieldLabel}>Atleta</label>
-                  <input type="text" name="atleta" required value={formLesao.atleta} onChange={handleChange} placeholder="Nome do jogador..." style={styles.inputModal} />
+                  <select name="jogadorId" required value={formLesao.jogadorId} onChange={handleChange} style={styles.inputModal}>
+                    <option value="">Selecione um jogador</option>
+                    {jogadores.map((jogador) => (
+                      <option key={jogador.id} value={jogador.id}>
+                        {jogador.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-
                 <div>
-                  <label style={styles.fieldLabel}>Diagnóstico / Tipo de Lesão</label>
-                  <input type="text" name="tipo" required value={formLesao.tipo} onChange={handleChange} placeholder="Ex: Estiramento grau 2 na coxa" style={styles.inputModal} />
+                  <label style={styles.fieldLabel}>Diagnostico / Tipo de Lesao</label>
+                  <input type="text" name="tipoLesao" required value={formLesao.tipoLesao} onChange={handleChange} placeholder="Ex: Estiramento grau 2 na coxa" style={styles.inputModal} />
                 </div>
-
                 <div style={{ display: 'flex', gap: '15px' }}>
                   <div style={{ flex: 1 }}>
                     <label style={styles.fieldLabel}>Gravidade</label>
                     <select name="gravidade" value={formLesao.gravidade} onChange={handleChange} style={styles.inputModal}>
-                      <option value="Baixa">Baixa (Dias)</option>
-                      <option value="Média">Média (Semanas)</option>
-                      <option value="Alta">Alta (Meses)</option>
+                      <option value="LEVE">Baixa</option>
+                      <option value="MODERADA">Media</option>
+                      <option value="GRAVE">Alta</option>
                     </select>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={styles.fieldLabel}>Status Inicial</label>
-                    <select name="status" value={formLesao.status} onChange={handleChange} style={styles.inputModal}>
-                      <option value="Em Avaliação">Em Avaliação</option>
-                      <option value="Em Tratamento">Em Tratamento</option>
-                      <option value="Cirurgia/Fisioterapia">Cirurgia/Fisioterapia</option>
+                    <label style={styles.fieldLabel}>Status</label>
+                    <select name="statusRecuperacao" value={formLesao.statusRecuperacao} onChange={handleChange} style={styles.inputModal}>
+                      <option value="EM_RECUPERACAO">Em Recuperacao</option>
+                      <option value="RECUPERADO">Recuperado</option>
+                      <option value="RECAIDA">Recaida</option>
                     </select>
                   </div>
                 </div>
-
                 <div style={{ display: 'flex', gap: '15px' }}>
                   <div style={{ flex: 1 }}>
-                    <label style={styles.fieldLabel}>Data da Ocorrência</label>
-                    <input type="text" name="dataOcorrencia" placeholder="DD/MM/AAAA" required value={formLesao.dataOcorrencia} onChange={handleChange} style={styles.inputModal} />
+                    <label style={styles.fieldLabel}>Data da Ocorrencia</label>
+                    <input type="date" name="dataLesao" required value={formLesao.dataLesao} onChange={handleChange} style={styles.inputModal} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={styles.fieldLabel}>Previsão de Retorno</label>
-                    <input type="text" name="previsaoRetorno" placeholder="DD/MM/AAAA" required value={formLesao.previsaoRetorno} onChange={handleChange} style={styles.inputModal} />
+                    <label style={styles.fieldLabel}>Tempo de Recuperacao (dias)</label>
+                    <input type="number" name="tempoRecuperacao" min="0" value={formLesao.tempoRecuperacao} onChange={handleChange} style={styles.inputModal} />
                   </div>
                 </div>
-
               </div>
             </div>
-
             <div style={styles.modalFooter}>
               <button type="button" style={styles.btnCancel} onClick={() => setModalAberto(false)}>Cancelar</button>
               <button type="submit" style={styles.btnSave}>Salvar Registro</button>
@@ -217,10 +383,14 @@ const styles = {
   cardHeader: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' },
   cardTitle: { color: '#94a3b8', fontSize: '14px', fontWeight: 'bold' },
   cardValue: { color: '#fff', fontSize: '32px', margin: '0 0 5px 0', fontWeight: 'bold' },
-  topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e293b', padding: '15px 20px', borderRadius: '12px', border: '1px solid #334155' },
+  topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', backgroundColor: '#1e293b', padding: '15px 20px', borderRadius: '12px', border: '1px solid #334155', flexWrap: 'wrap' },
   searchBox: { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#0f172a', padding: '10px 15px', borderRadius: '8px', border: '1px solid #334155', width: '350px' },
+  actionsRow: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
   searchInput: { backgroundColor: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: '14px' },
   addButton: { display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' },
+  refreshButton: { display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'transparent', color: '#cbd5e1', border: '1px solid #334155', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' },
+  errorBox: { backgroundColor: '#7f1d1d', color: '#fecaca', padding: '12px 14px', borderRadius: '10px', border: '1px solid #ef4444' },
+  loadingBox: { backgroundColor: '#0f172a', color: '#94a3b8', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' },
   tableContainer: { backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', border: '1px solid #334155', overflowX: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse' },
   tableHeader: { borderBottom: '1px solid #334155', textAlign: 'left' },
@@ -230,6 +400,7 @@ const styles = {
   tdBold: { padding: '15px 0', color: '#fff', fontSize: '14px', fontWeight: 'bold' },
   tdActions: { padding: '15px 0', display: 'flex', gap: '10px', justifyContent: 'center' },
   actionBtn: { backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '5px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  emptyState: { textAlign: 'center', padding: '30px', color: '#94a3b8' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { backgroundColor: '#1e293b', padding: '0', borderRadius: '12px', width: '100%', maxWidth: '600px', border: '1px solid #334155', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' },
   modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderBottom: '1px solid #334155' },

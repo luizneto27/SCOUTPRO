@@ -38,8 +38,22 @@ public class PartidaService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PartidaResponse> getByCampeonato(Integer campeonatoId, Pageable pageable) {
-        Page<PartidaEntity> page = partidaRepository.findByCompeticaoEdicaoCompeticaoId(campeonatoId, pageable);
+    public Page<PartidaResponse> getByCampeonato(Integer campeonatoId, Integer competicaoEdicaoId, Pageable pageable) {
+        Page<PartidaEntity> page;
+
+        if (competicaoEdicaoId != null) {
+            CompeticaoEdicaoEntity competicaoEdicao = competicaoEdicaoRepository.findById(competicaoEdicaoId)
+                    .orElseThrow(() -> new EntityNotFoundException("Edição de campeonato com id " + competicaoEdicaoId + " não encontrada"));
+
+            if (competicaoEdicao.getCompeticao() == null || !campeonatoId.equals(competicaoEdicao.getCompeticao().getId())) {
+                throw new EntityNotFoundException("Edição de campeonato com id " + competicaoEdicaoId + " não pertence ao campeonato " + campeonatoId);
+            }
+
+            page = partidaRepository.findByCompeticaoEdicaoId(competicaoEdicaoId, pageable);
+        } else {
+            page = partidaRepository.findByCompeticaoEdicaoCompeticaoId(campeonatoId, pageable);
+        }
+
         return page.map(this::toResponse);
     }
 

@@ -6,6 +6,9 @@ import java.time.LocalDate;
 public record ContratoResponse(
         Integer id,
         Integer jogadorId,
+        String jogadorNome,
+        Integer clubeId,
+        String clubeNome,
         String cnpjClube,
         BigDecimal valorContrato,
         Integer tempoContrato,

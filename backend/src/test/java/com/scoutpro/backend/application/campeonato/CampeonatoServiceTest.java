@@ -8,6 +8,7 @@ import com.scoutpro.backend.infrastructure.persistence.repository.CompeticaoRepo
 import com.scoutpro.backend.infrastructure.persistence.repository.CompeticaoEdicaoRepository;
 import com.scoutpro.backend.infrastructure.web.campeonato.CampeonatoRequest;
 import com.scoutpro.backend.infrastructure.web.campeonato.CampeonatoResponse;
+import com.scoutpro.backend.infrastructure.web.campeonato.CompeticaoEdicaoResponse;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -127,6 +128,66 @@ class CampeonatoServiceTest {
         assertEquals(TipoCampeonato.LIGA, campeonato.tipoCampeonato());
 
         verify(competicaoRepository, times(1)).findAll(pageable);
+    }
+
+    @Test
+    @DisplayName("Should list competition editions by campeonato id")
+    void testGetEdicoesByCampeonato_Success() {
+        when(competicaoRepository.existsById(1)).thenReturn(true);
+        when(competicaoEdicaoRepository.findAllByCompeticaoIdOrderByTemporadaDescIdDesc(1))
+                .thenReturn(Arrays.asList(edicaoEntity));
+
+        var response = campeonatoService.getEdicoesByCampeonato(1);
+
+        assertNotNull(response);
+        assertEquals(1, response.size());
+        CompeticaoEdicaoResponse edicao = response.get(0);
+        assertEquals(1, edicao.id());
+        assertEquals(1, edicao.campeonatoId());
+        assertEquals("Campeonato Brasileiro", edicao.campeonatoNome());
+        assertEquals("2024", edicao.temporada());
+
+        verify(competicaoRepository, times(1)).existsById(1);
+        verify(competicaoEdicaoRepository, times(1)).findAllByCompeticaoIdOrderByTemporadaDescIdDesc(1);
+    }
+
+    @Test
+    @DisplayName("Should throw EntityNotFoundException when campeonato does not exist for editions listing")
+    void testGetEdicoesByCampeonato_NotFound() {
+        when(competicaoRepository.existsById(999)).thenReturn(false);
+
+        assertThrows(EntityNotFoundException.class,
+                () -> campeonatoService.getEdicoesByCampeonato(999));
+
+        verify(competicaoRepository, times(1)).existsById(999);
+        verify(competicaoEdicaoRepository, never()).findAllByCompeticaoIdOrderByTemporadaDescIdDesc(any());
+    }
+
+    @Test
+    @DisplayName("Should get competition edition by id")
+    void testGetEdicaoById_Success() {
+        when(competicaoEdicaoRepository.findById(1)).thenReturn(Optional.of(edicaoEntity));
+
+        CompeticaoEdicaoResponse response = campeonatoService.getEdicaoById(1);
+
+        assertNotNull(response);
+        assertEquals(1, response.id());
+        assertEquals(1, response.campeonatoId());
+        assertEquals("Campeonato Brasileiro", response.campeonatoNome());
+        assertEquals(TipoCampeonato.LIGA, response.tipoCampeonato());
+
+        verify(competicaoEdicaoRepository, times(1)).findById(1);
+    }
+
+    @Test
+    @DisplayName("Should throw EntityNotFoundException when competition edition does not exist")
+    void testGetEdicaoById_NotFound() {
+        when(competicaoEdicaoRepository.findById(999)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class,
+                () -> campeonatoService.getEdicaoById(999));
+
+        verify(competicaoEdicaoRepository, times(1)).findById(999);
     }
 
     @Test

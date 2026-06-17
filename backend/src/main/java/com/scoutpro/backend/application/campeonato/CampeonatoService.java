@@ -7,11 +7,14 @@ import com.scoutpro.backend.infrastructure.persistence.repository.CompeticaoRepo
 import com.scoutpro.backend.infrastructure.persistence.repository.CompeticaoEdicaoRepository;
 import com.scoutpro.backend.infrastructure.web.campeonato.CampeonatoRequest;
 import com.scoutpro.backend.infrastructure.web.campeonato.CampeonatoResponse;
+import com.scoutpro.backend.infrastructure.web.campeonato.CompeticaoEdicaoResponse;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class CampeonatoService {
@@ -58,6 +61,26 @@ public class CampeonatoService {
             }
             return toResponse(competicao, null);
         });
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompeticaoEdicaoResponse> getEdicoesByCampeonato(Integer campeonatoId) {
+        if (!competicaoRepository.existsById(campeonatoId)) {
+            throw new EntityNotFoundException("Campeonato com id " + campeonatoId + " não encontrado");
+        }
+
+        return competicaoEdicaoRepository.findAllByCompeticaoIdOrderByTemporadaDescIdDesc(campeonatoId)
+                .stream()
+                .map(this::toCompeticaoEdicaoResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public CompeticaoEdicaoResponse getEdicaoById(Integer competicaoEdicaoId) {
+        CompeticaoEdicaoEntity edicao = competicaoEdicaoRepository.findById(competicaoEdicaoId)
+                .orElseThrow(() -> new EntityNotFoundException("Edição de campeonato com id " + competicaoEdicaoId + " não encontrada"));
+
+        return toCompeticaoEdicaoResponse(edicao);
     }
 
     @Transactional
@@ -108,6 +131,22 @@ public class CampeonatoService {
                 temporada,
                 divisao,
                 ranking
+        );
+    }
+
+    private CompeticaoEdicaoResponse toCompeticaoEdicaoResponse(CompeticaoEdicaoEntity edicao) {
+        CompeticaoEntity competicao = edicao.getCompeticao();
+        Integer paisId = competicao != null && competicao.getPais() != null ? competicao.getPais().getId() : null;
+
+        return new CompeticaoEdicaoResponse(
+                edicao.getId(),
+                competicao != null ? competicao.getId() : null,
+                competicao != null ? competicao.getNome() : null,
+                paisId,
+                competicao != null ? competicao.getTipoCampeonato() : null,
+                edicao.getTemporada(),
+                edicao.getDivisao(),
+                edicao.getRanking()
         );
     }
 }
