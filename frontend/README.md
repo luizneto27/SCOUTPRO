@@ -1,18 +1,8 @@
-Frontend static pages for ScoutPro
+# React + Vite
 
-How to run locally:
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-1. Start the backend and ensure it's reachable at http://localhost:8080
-2. From this repo root run a static server, for example:
+Currently, two official plugins are available:
 
-```bash
-cd frontend
-python3 -m http.server 8000
-# or: npx http-server -p 8000
-```
-
-3. Open http://localhost:8000 in the browser.
-
-Notes:
-- Pages use the API at `/api/v1/*` on the same host by default. If your backend is on a different host/port edit `assets/app.js` -> `BASE_URL`.
-- These pages are minimal, intended for quick manual verification before opening a PR to `develop`.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh

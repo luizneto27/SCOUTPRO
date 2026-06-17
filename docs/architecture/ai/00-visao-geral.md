@@ -5,12 +5,13 @@ Este conjunto de arquivos orienta a IA na construcao do backend do ScoutPro usan
 
 ## Escopo do backend
 - Expor APIs para cadastro, consulta e analise de jogadores, clubes, scouts, relatorios, transferencias e estatisticas.
-- Respeitar constraints, FKs, unicidades e checks definidos no baseline Flyway (`backend/src/main/resources/db/migration/V1__baseline.sql`).
+- Respeitar constraints, FKs, unicidades e checks definidos no schema oficial em `docs/schema_normalized.sql` e refletidos no baseline Flyway.
 - Priorizar consistencia transacional para operacoes criticas (contratos, transferencias, monitoramento e relatorios).
 - Prover autenticacao stateless com JWT e usuarios persistidos em banco.
 
 ## Fontes oficiais de verdade
-- Schema base: `backend/src/main/resources/db/migration/V1__baseline.sql`
+- Schema base: `docs/schema_normalized.sql`
+- Schema de busca semantica: `docs/semantic_search_migration.sql`
 - Migracoes ativas: `backend/src/main/resources/db/migration`
 - Dados de exemplo: criar migrations de seed quando necessario (ambiente local/dev)
 - Consultas analiticas e padroes de uso: documentar em `docs/domain` quando surgirem
@@ -23,7 +24,7 @@ Qualquer decisao de modelagem da API ou do dominio Java deve partir primeiro do 
 
 ## Estado atual (obrigatorio considerar)
 - Backend Java em `backend/`.
-- Flyway habilitado, com `V1__baseline.sql` e `V2__create_usuarios.sql`.
+- Flyway habilitado, com `V1__baseline.sql` e `V2__semantic_search.sql`.
 - Seguranca JWT ativa com:
   - `POST /api/v1/usuarios` (cadastro)
   - `POST /api/v1/auth/login` (gera token)

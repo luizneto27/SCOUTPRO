@@ -1,87 +1,163 @@
 # ScoutPro
 
-Backend Java do ScoutPro (Spring Boot + PostgreSQL), com arquitetura limpa, migrations Flyway e autenticacao JWT.
+ScoutPro com frontend em React/Vite, backend em Java 21 com Spring Boot 4, PostgreSQL, Flyway e autenticação JWT.
 
-## Estrutura do projeto
+## Estado atual da arquitetura
 
-- `backend/`: API Java (Spring Boot 4)
-- `docs/`: documentacao funcional e tecnica
-- `docker-compose.yml`: sobe Postgres + backend
+O repositório está organizado com frontend, backend e versionamento do schema:
 
-## Requisitos
+- `frontend/`: aplicação React/Vite servida por `nginx` no Docker.
+- `backend/`: aplicação Spring Boot.
+- `backend/src/main/java/com/scoutpro/backend/config/security`: configuração de segurança, JWT e bootstrap do admin.
+- `backend/src/main/java/com/scoutpro/backend/application`: serviços de aplicação.
+- `backend/src/main/java/com/scoutpro/backend/domain`: enums e contratos de domínio já refletidos do banco.
+- `backend/src/main/java/com/scoutpro/backend/infrastructure/persistence`: entidades JPA e repositórios.
+- `backend/src/main/java/com/scoutpro/backend/infrastructure/web`: controllers e DTOs HTTP.
+- `backend/src/main/resources/db/migration`: migrations Flyway geradas a partir dos SQLs oficiais em `docs/`.
+- `docs/`: documentação técnica e de contexto.
+- `AGENTS.md`: guia operacional para agentes de IA seguirem padrões e fluxo do projeto.
 
+Hoje a API implementada cobre principalmente:
+
+- autenticação JWT;
+- bootstrap automático de um usuário `ADMIN` no primeiro startup;
+- criação de usuários protegida por role `ADMIN`;
+- mapeamento JPA do domínio relacional principal já existente no baseline.
+
+Endpoints já disponíveis:
+
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/usuarios`
+- `GET /api/v1/campeonatos`
+- `GET /api/v1/campeonatos/{id}/edicoes`
+- `GET /api/v1/competicoes-edicoes/{id}`
+- `GET /api/v1/campeonatos/{id}/partidas`
+  - aceita `?competicaoEdicaoId={id}` para filtrar as partidas de uma edição específica
+- `GET /api/v1/lesoes`
+- `GET /api/v1/lesoes/{id}`
+- `POST /api/v1/lesoes`
+- `PUT /api/v1/lesoes/{id}`
+- `DELETE /api/v1/lesoes/{id}`
+- `GET /api/v1/lesoes/resumo`
+- `GET /api/v1/partidas/{partidaId}/disputas`
+- `POST /api/v1/partidas/{partidaId}/disputas`
+- `PUT /api/v1/partidas/{partidaId}/disputas/{jogadorId}`
+- `DELETE /api/v1/partidas/{partidaId}/disputas/{jogadorId}`
+- `GET /api/v1/estatisticas`
+- `GET /api/v1/dashboard/resumo`
+- `GET /api/v1/comparativo/jogadores`
+- `GET /api/v1/jogadores/{id}/contratos`
+- `POST /api/v1/jogadores/{id}/contratos`
+- `PUT /api/v1/contratos/{id}`
+- `PATCH /api/v1/contratos/{id}/encerrar`
+- `DELETE /api/v1/contratos/{id}`
+- `GET /api/v1/clubes/{cnpj}/contratos`
+- `GET /api/v1/jogadores/{id}/transferencias`
+- `POST /api/v1/jogadores/{id}/transferencias`
+- `GET /api/v1/clubes/{cnpj}/transferencias`
+- `GET /actuator/health`
+- `GET /swagger-ui/index.html`
+- `GET /v3/api-docs`
+
+## Stack
+
+- Java 21
+- Spring Boot 4
+- Spring Web
+- Spring Data JPA
+- Spring Security
+- JWT
+- Flyway
+- PostgreSQL
+- React
+- Vite
+- Nginx
+- Springdoc OpenAPI
+- Testcontainers para testes de integração
+
+## Requisitos para rodar localmente
+
+- Java 21
+- Maven 3.9+
 - Docker Desktop
 
-## Subir o ambiente
+## Como subir localmente
 
-1. Copie variaveis de ambiente:
+### Opção 1: stack completa com Docker Compose
+
+1. Copie o arquivo de ambiente:
 
 ```bash
 copy .env.example .env
 ```
 
-`JWT_SECRET` e obrigatorio para subir o backend via Docker Compose.
+2. Gere um valor forte para `JWT_SECRET` e preencha no `.env`.
 
-2. Suba os servicos:
+Exemplo em PowerShell para gerar uma chave aleatória em Base64:
 
-```bash
-docker compose up -d --build
+```powershell
+[Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 } | ForEach-Object { [byte]$_ }))
 ```
 
-Servicos:
+Exemplo de preenchimento no `.env`:
 
-- Backend: `http://localhost:8080`
+```env
+JWT_SECRET=cole-aqui-a-chave-gerada
+```
+
+Boas práticas:
+
+- use um valor longo e aleatório;
+- não reutilize segredos entre ambientes;
+- não commite o `.env` com segredo real no repositório.
+
+3. Suba a stack completa:
+
+```bash
+docker compose up -d --build postgres backend frontend
+```
+
+4. Acesse a aplicação:
+
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- OpenAPI: `http://localhost:8080/v3/api-docs`
+- Healthcheck: `http://localhost:8080/actuator/health`
 - PostgreSQL: `localhost:5432`
 
-## Banco de dados e migrations
+O frontend é servido por `nginx` e encaminha chamadas para `/api` ao backend do container `backend` na porta `8080`.
 
-- Baseline: `backend/src/main/resources/db/migration/V1__baseline.sql`
-- Usuarios/autenticacao: `backend/src/main/resources/db/migration/V2__create_usuarios.sql`
-- Fonte de referencia do schema: `backend/src/main/resources/db/migration/V1__baseline.sql`
-
-Regra obrigatoria: nunca alterar migration ja aplicada em ambiente compartilhado; sempre criar nova `Vx__...sql`.
-
-## Autenticacao JWT
-
-Fluxo:
-
-1. No primeiro startup, o sistema cria automaticamente um usuario `ADMIN` (bootstrap).
-2. Fazer login (`POST /api/v1/auth/login`) com o admin.
-3. Com token do admin, criar outros usuarios (`POST /api/v1/usuarios`).
-4. Usar token em `Authorization: Bearer <jwt>`.
-
-Endpoints principais:
-
-- `POST /api/v1/usuarios`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me` (protegido)
-
-Variaveis de bootstrap do admin:
-- `APP_ADMIN_USERNAME`
-- `APP_ADMIN_PASSWORD`
-- `APP_ADMIN_NOME`
-- `APP_ADMIN_CPF`
-- `APP_ADMIN_EMAIL`
-- `APP_ADMIN_TELEFONE`
-
-## Build local do backend
+5. Para rebuildar apenas frontend e backend sem mexer no volume do banco:
 
 ```bash
-cd backend
-mvn -DskipTests package
+docker compose stop backend frontend
+docker compose rm -f backend frontend
+docker compose up -d --build backend frontend
 ```
 
-## Teste local (backend + banco local)
+6. Para acompanhar logs:
 
-1. Suba somente o Postgres:
+```bash
+docker compose logs -f frontend backend postgres
+```
+
+7. Para derrubar o ambiente:
+
+```bash
+docker compose down
+```
+
+### Opção 2: banco em Docker + backend rodando local pelo Maven
+
+1. Suba apenas o PostgreSQL:
 
 ```bash
 docker compose up -d postgres
 ```
 
-2. Rode a API local com profile `local`:
+2. Rode a aplicação com o profile local:
 
 ```bash
 cd backend
@@ -89,40 +165,185 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 3. Acesse:
+
 - API: `http://localhost:8080`
-- Swagger: `http://localhost:8080/swagger-ui/index.html`
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
-Observacoes:
-- O profile `local` usa `application-local.yml`.
-- Flyway roda no startup e cria/atualiza schema automaticamente.
-- Padrao local atual:
-  - database: `scoutpro-project`
-  - username: `scoutpro`
-  - password: `scoutpro`
-- Se quiser usar outro banco local, sobrescreva com:
-  - `SPRING_DATASOURCE_URL`
-  - `SPRING_DATASOURCE_USERNAME`
-  - `SPRING_DATASOURCE_PASSWORD`
-  - `JWT_SECRET`
+O profile `local` usa `backend/src/main/resources/application-local.yml` e, por padrão, tenta conectar em:
 
-Tambem ha fallback para ambientes como Azure Container Apps usando:
+- database: `scoutpro-project`
+- usuario: `scoutpro`
+- senha: `scoutpro`
+
+Se quiser reutilizar o banco do `docker-compose.yml`, defina as variáveis antes de subir a aplicação local.
+
+Exemplo em PowerShell:
+
+```bash
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/scoutpro-project"
+$env:SPRING_DATASOURCE_USERNAME="scoutpro"
+$env:SPRING_DATASOURCE_PASSWORD="scoutpro"
+$env:JWT_SECRET="change-me-change-me-change-me-change-me"
+```
+
+## Variáveis de ambiente relevantes
+
+Infra e banco:
+
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
 - `DB_HOST`
 - `DB_PORT`
 - `POSTGRES_DB`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `DB_SSLMODE`
+
+Segurança:
+
 - `JWT_SECRET`
+- `JWT_EXPIRATION_SECONDS`
 
-Precedencia:
-- Se `SPRING_DATASOURCE_URL` estiver definida, ela vence.
-- Caso contrario, a aplicacao monta a URL a partir de `DB_HOST`/`DB_PORT`/`POSTGRES_DB`/`DB_SSLMODE`.
+Como gerar `JWT_SECRET`:
 
-## CI/CD
+- PowerShell:
 
-Workflow em `.github/workflows/build-push-acr.yml` para build e push de imagem no ACR.
+```powershell
+[Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 } | ForEach-Object { [byte]$_ }))
+```
 
-Healthcheck opcional no GitHub Actions:
-- Defina a repository variable `HEALTHCHECK_URL` com a URL publicada da aplicacao.
-- Recomendado: `https://<seu-endpoint>/actuator/health`
-- O workflow fara ate 30 tentativas com intervalo de 10 segundos e falhara se nao receber HTTP `200`.
+- OpenSSL:
+
+```bash
+openssl rand -base64 64
+```
+
+O valor gerado deve ser copiado para a variável `JWT_SECRET` no `.env` ou nas variáveis de ambiente da máquina/container.
+
+Bootstrap do admin:
+
+- `APP_ADMIN_USERNAME`
+- `APP_ADMIN_PASSWORD`
+- `APP_ADMIN_NOME`
+- `APP_ADMIN_CPF`
+- `APP_ADMIN_EMAIL`
+- `APP_ADMIN_TELEFONE`
+
+Precedência de datasource:
+
+1. `SPRING_DATASOURCE_URL`
+2. montagem via `DB_HOST` + `DB_PORT` + `POSTGRES_DB` + `DB_SSLMODE`
+3. defaults do `application-local.yml`
+
+## Fluxo inicial de uso
+
+1. Suba a aplicação.
+2. O bootstrap cria automaticamente um usuário `ADMIN` caso ainda não exista nenhum admin.
+3. Faça login em `POST /api/v1/auth/login`.
+4. Use o JWT retornado no header `Authorization: Bearer <token>`.
+5. Com esse token, crie outros usuários em `POST /api/v1/usuarios`.
+
+Exemplo de login para obter o token:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login -H "Content-Type: application/json" -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
+```
+
+Resposta esperada:
+
+```json
+{
+  "accessToken": "jwt-aqui",
+  "tokenType": "Bearer",
+  "expiresIn": 3600
+}
+```
+
+Exemplo para consultar o usuário autenticado:
+
+```bash
+curl http://localhost:8080/api/v1/auth/me -H "Authorization: Bearer jwt-aqui"
+```
+
+Exemplo para criar outro usuário com token de admin:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/usuarios -H "Content-Type: application/json" -H "Authorization: Bearer jwt-aqui" -d "{\"username\":\"operador1\",\"nomeUsuario\":\"Operador 1\",\"cpf\":\"12345678901\",\"email\":\"operador1@scoutpro.local\",\"telefone\":\"85999999999\",\"senha\":\"senha123\"}"
+```
+
+## Uso do Flyway
+
+O projeto usa Flyway como mecanismo obrigatório de evolução do schema.
+
+Neste repositório, o uso do Flyway é feito no startup da aplicação. Não há plugin Maven de migração configurado para execução separada.
+
+Schema adotado:
+
+- o projeto assume uso do schema `public` no PostgreSQL;
+- as migrations Flyway são aplicadas no `public`;
+- o mapeamento JPA também espera as tabelas no `public`.
+
+Implicação prática:
+
+- o banco local precisa manter o schema `public` disponível;
+- se o banco estiver vazio, as tabelas serão criadas pelas migrations nesse schema;
+- se o ambiente usar outro schema, a configuração atual do projeto não está preparada para isso.
+
+Fontes oficiais do schema:
+
+- `docs/schema_normalized.sql`
+- `docs/semantic_search_migration.sql`
+
+Localização das migrations geradas a partir desses SQLs:
+
+- `backend/src/main/resources/db/migration`
+
+Migrations atuais:
+
+- `V1__baseline.sql`: baseline consolidado do schema normalizado e autenticação.
+- `V2__semantic_search.sql`: extensão `vector` e estrutura de busca semântica em `jogadores`.
+
+Regras de uso:
+
+- nunca editar uma migration já aplicada em ambiente compartilhado;
+- toda mudança de schema deve entrar em uma nova `Vx__descricao.sql`;
+- manter `spring.jpa.hibernate.ddl-auto=validate`;
+- não usar `ddl-auto=create` ou `ddl-auto=update` como estratégia de evolução.
+
+Fluxo recomendado para alterar o banco:
+
+1. criar uma nova migration em `backend/src/main/resources/db/migration`;
+2. ajustar entidades JPA, repositórios e serviços para refletir o novo schema;
+3. subir a aplicação e deixar o Flyway aplicar a migration no startup;
+4. validar se o `ddl-auto=validate` continua passando.
+
+## Build e testes
+
+Build do backend:
+
+```bash
+cd backend
+mvn -DskipTests package
+```
+
+Testes:
+
+```bash
+cd backend
+mvn test
+```
+
+## Documentação complementar
+
+Use os documentos abaixo conforme o objetivo:
+
+- [docs/README.md](docs/README.md): índice geral da documentação disponível em `docs/`.
+- [docs/schema_normalized.sql](docs/schema_normalized.sql): schema relacional oficial do projeto, usado como base do baseline Flyway.
+- [docs/semantic_search_migration.sql](docs/semantic_search_migration.sql): estrutura oficial da camada de busca semântica com `pgvector`.
+- [docs/fluxo-negocio-atual.md](docs/fluxo-negocio-atual.md): visão de negócio ponta a ponta do que já existe hoje, incluindo autenticação e chamadas atuais da API.
+- [docs/architecture/ai/00-visao-geral.md](docs/architecture/ai/00-visao-geral.md): visão técnica geral do backend, fontes de verdade e estado atual da aplicação.
+- [docs/architecture/ai/01-schema-e-regras.md](docs/architecture/ai/01-schema-e-regras.md): regras de integridade e decisões de modelagem que devem guiar banco, domínio e API.
+- [docs/architecture/ai/02-organizacao-backend-spring.md](docs/architecture/ai/02-organizacao-backend-spring.md): organização esperada do backend Spring Boot, convenções e estratégia de evolução.
+- [docs/architecture/ai/03-skills-tecnicas-ia.md](docs/architecture/ai/03-skills-tecnicas-ia.md): checklist técnico para implementações assistidas por IA.
+- [AGENTS.md](AGENTS.md): guia operacional para agentes de IA seguirem os padrões, a ordem de leitura e o fluxo do projeto.

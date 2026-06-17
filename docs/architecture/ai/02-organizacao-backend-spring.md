@@ -54,12 +54,13 @@ com.scoutpro.backend
 - Cadastro de usuario (`POST /api/v1/usuarios`) deve exigir role `ADMIN`.
 
 ## Estratégia de migracao
-- Tratar `V1__baseline.sql` como baseline inicial.
-- Criar migracoes incrementais via Flyway (`V1__baseline.sql`, `V2__...`).
+- Tratar `docs/schema_normalized.sql` como fonte oficial do baseline.
+- Tratar `docs/semantic_search_migration.sql` como fonte oficial da camada de busca semantica.
+- Gerar migracoes incrementais via Flyway a partir desses SQLs.
 - Nunca alterar migracao ja aplicada em ambiente compartilhado.
 - Estado atual:
-  - `V1__baseline.sql`: schema normalizado.
-  - `V2__create_usuarios.sql`: tabela de usuarios para autenticacao.
+  - `V1__baseline.sql`: schema normalizado consolidado com autenticacao.
+  - `V2__semantic_search.sql`: extensao `vector` e colunas de busca semantica.
 
 ## Regra de Evolucao de Schema (Obrigatoria)
 - O schema deve evoluir exclusivamente via Flyway (`classpath:db/migration`).
