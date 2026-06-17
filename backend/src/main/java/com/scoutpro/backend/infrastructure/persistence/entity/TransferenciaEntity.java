@@ -21,6 +21,9 @@ public class TransferenciaEntity extends BaseEntity {
     @Column(name = "data_transferencia", nullable = false)
     private LocalDate dataTransferencia;
 
+    @Column(name = "valor_pago")
+    private java.math.BigDecimal valorPago;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TipoTransferencia tipo;
