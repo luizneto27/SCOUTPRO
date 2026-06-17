@@ -106,7 +106,7 @@ class DashboardServiceTest {
         when(clubeRepository.count()).thenReturn(5L);
         when(competicaoRepository.count()).thenReturn(3L);
         when(lesaoRepository.findAll()).thenReturn(List.of(lesao));
-        when(relatorioRepository.findByDataObservacaoGreaterThanEqualOrderByDataObservacaoAscIdAsc(org.mockito.ArgumentMatchers.any()))
+        when(relatorioRepository.findTop20ByOrderByDataObservacaoDescIdDesc())
                 .thenReturn(List.of(relatorio));
         when(estatisticaRepository.findAll()).thenReturn(List.of(estatistica));
         when(jogadorPosicaoRepository.findByJogadorIdOrderByOrdemAsc(1)).thenReturn(List.of(jogadorPosicao));
@@ -115,6 +115,7 @@ class DashboardServiceTest {
 
         assertEquals(12L, response.atletasAtivos());
         assertEquals(1L, response.lesoesEmRecuperacao());
+        assertEquals(1, response.performanceMedia().size());
         assertEquals(1, response.atletasDestaque().size());
         assertEquals(2, response.alertasRecentes().size());
         assertEquals("Joao Silva", response.atletasDestaque().get(0).nome());

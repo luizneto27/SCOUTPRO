@@ -106,7 +106,7 @@ class ComparativoServiceTest {
         when(jogadorRepository.findById(1)).thenReturn(Optional.of(jogadorA));
         when(jogadorRepository.findById(2)).thenReturn(Optional.of(jogadorB));
         when(estatisticaRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(estatisticaA, estatisticaB));
-        when(relatorioRepository.findByJogadorIdsAndCompeticaoEdicaoId(List.of(1, 2), null)).thenReturn(List.of(relatorioA, relatorioB));
+        when(relatorioRepository.findByJogadorIdIn(List.of(1, 2))).thenReturn(List.of(relatorioA, relatorioB));
         when(jogadorPosicaoRepository.findByJogadorIdOrderByOrdemAsc(1)).thenReturn(List.of(posicaoEntity));
         when(jogadorPosicaoRepository.findByJogadorIdOrderByOrdemAsc(2)).thenReturn(List.of(posicaoEntity));
 

@@ -28,4 +28,13 @@ public interface RelatorioRepository extends JpaRepository<RelatorioEntity, Inte
     );
 
     List<RelatorioEntity> findByJogadorIdIn(List<Integer> jogadorIds);
+
+    boolean existsByJogadorId(Integer jogadorId);
+
+    @Query("""
+            select distinct r.jogador.id
+            from RelatorioEntity r
+            where r.jogador.id in :jogadorIds
+            """)
+    List<Integer> findDistinctJogadorIdsWithRelatorios(@Param("jogadorIds") List<Integer> jogadorIds);
 }

@@ -153,22 +153,44 @@ class LesaoServiceTest {
     @Test
     @DisplayName("Should compute resumo from filtered lesions")
     void resumoSuccess() {
+        LocalDate hoje = LocalDate.now();
+
         LesaoEntity recuperada = new LesaoEntity();
         recuperada.setId(4);
         recuperada.setJogador(jogador);
-        recuperada.setDataLesao(LocalDate.now().minusDays(20));
+        recuperada.setDataLesao(hoje.minusDays(20));
         recuperada.setTipoLesao("Fadiga");
         recuperada.setStatusRecuperacao(StatusRecuperacaoLesao.RECUPERADO);
         recuperada.setTempoRecuperacao(5);
 
-        when(lesaoRepository.findAll(any(Specification.class))).thenReturn(List.of(lesao, recuperada));
+        LesaoEntity semStatusAindaAtiva = new LesaoEntity();
+        semStatusAindaAtiva.setId(5);
+        semStatusAindaAtiva.setJogador(jogador);
+        semStatusAindaAtiva.setDataLesao(hoje.minusDays(1));
+        semStatusAindaAtiva.setTipoLesao("Contusao");
+        semStatusAindaAtiva.setTempoRecuperacao(4);
+
+        LesaoEntity semStatusJaRecuperada = new LesaoEntity();
+        semStatusJaRecuperada.setId(6);
+        semStatusJaRecuperada.setJogador(jogador);
+        semStatusJaRecuperada.setDataLesao(hoje.minusDays(12));
+        semStatusJaRecuperada.setTipoLesao("Entorse leve");
+        semStatusJaRecuperada.setTempoRecuperacao(3);
+
+        when(lesaoRepository.findAll(any(Specification.class))).thenReturn(List.of(
+                lesao,
+                recuperada,
+                semStatusAindaAtiva,
+                semStatusJaRecuperada
+        ));
 
         LesaoResumoResponse response = lesaoService.getResumo(null);
 
         assertNotNull(response);
-        assertEquals(2, response.totalRegistros());
-        assertEquals(1, response.noDepartamentoMedico());
-        assertEquals(1, response.recuperadas());
+        assertEquals(4, response.totalRegistros());
+        assertEquals(2, response.noDepartamentoMedico());
+        assertEquals(2, response.recuperadas());
+        assertEquals(2, response.retornoPrevistoProximos7Dias());
         verify(lesaoRepository, times(1)).findAll(any(Specification.class));
     }
 }
