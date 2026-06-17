@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Transferências - ScoutPro</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header><a href="index.html">← Voltar</a></header>
+  <main>
+    <h2>Histórico de Transferências</h2>
+    <p>Use `?jogadorId=42` na URL para consultar.</p>
+    <div id="status"></div>
+    <ul id="list"></ul>
+  </main>
+  <script src="assets/app.js"></script>
+  <script>
+    const jogadorId = new URLSearchParams(location.search).get('jogadorId') || 42;
+    async function load() {
+      const status = document.getElementById('status');
+      const list = document.getElementById('list');
+      try {
+        const res = await apiFetch(`/transferencias/jogador/${jogadorId}`);
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        list.innerHTML = data.map(t => `<li>${t.dataTransferencia} — ${t.valorPago} — ${t.clubeOrigemId} → ${t.clubeDestinoId}</li>`).join('');
+        status.textContent = 'OK';
+      } catch (err) {
+        status.textContent = 'Erro: ' + err;
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

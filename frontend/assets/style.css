@@ -1,0 +1,6 @@
+body{font-family:system-ui, -apple-system, Roboto, Arial; margin:16px}
+header{display:flex;align-items:center;gap:12px}
+nav a{margin-right:10px}
+main{margin-top:12px}
+label{display:block;margin:8px 0}
+button{margin-top:8px}

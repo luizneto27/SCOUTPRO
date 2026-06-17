@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Patrocínios - ScoutPro</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header><a href="index.html">← Voltar</a></header>
+  <main>
+    <h2>Patrocínios do Jogador</h2>
+    <p>Informe `?jogadorId=42` na URL para ver patrocínios.</p>
+    <div id="status"></div>
+    <ul id="list"></ul>
+  </main>
+  <script src="assets/app.js"></script>
+  <script>
+    function getParam(name) {
+      return new URLSearchParams(location.search).get(name);
+    }
+    const jogadorId = getParam('jogadorId') || 42;
+    async function load() {
+      const status = document.getElementById('status');
+      const list = document.getElementById('list');
+      try {
+        const res = await apiFetch(`/jogadores/${jogadorId}/patrocinios`);
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        list.innerHTML = data.map(p => `<li>${p.marcaNome ?? p.marcaId} — ${p.dataInicio} to ${p.dataFim ?? '—'}</li>`).join('');
+        status.textContent = 'OK';
+      } catch (err) {
+        status.textContent = 'Erro: ' + err;
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

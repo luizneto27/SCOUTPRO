@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login - ScoutPro</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header><a href="index.html">← Voltar</a></header>
+  <main>
+    <h2>Login</h2>
+    <form id="login-form">
+      <label>Usuário<br><input name="username" required></label>
+      <label>Senha<br><input name="password" type="password" required></label>
+      <button type="submit">Entrar</button>
+    </form>
+    <div id="msg"></div>
+  </main>
+  <script src="assets/app.js"></script>
+  <script>
+    const form = document.getElementById('login-form');
+    const msg = document.getElementById('msg');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = { username: fd.get('username'), password: fd.get('password') };
+      try {
+        const res = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(body) });
+        const j = await res.json();
+        if (j.token) {
+          setToken(j.token);
+          msg.textContent = 'Login OK. Token salvo.';
+        } else {
+          msg.textContent = 'Resposta inesperada.';
+        }
+      } catch (err) {
+        msg.textContent = 'Erro: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

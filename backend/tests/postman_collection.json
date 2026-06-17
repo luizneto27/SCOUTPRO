@@ -1,0 +1,84 @@
+{
+  "info": {
+    "_postman_id": "b7f3a2b0-0000-4000-8000-000000000000",
+    "name": "ScoutPro Smoke Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "OpenAPI /v3/api-docs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v3/api-docs",
+          "host": ["{{baseUrl}}"],
+          "path": ["v3","api-docs"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{auth_user}}\",\n  \"password\": \"{{auth_pass}}\"\n}"
+        },
+        "url": {"raw": "{{baseUrl}}/api/v1/auth/login","host":["{{baseUrl}}"],"path":["api","v1","auth","login"]}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json.token) { pm.environment.set('token', json.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /api/v1/clientes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{token}}","type":"text"}
+        ],
+        "url": {"raw":"{{baseUrl}}/api/v1/clientes","host":["{{baseUrl}}"],"path":["api","v1","clientes"]}
+      }
+    },
+    {
+      "name": "GET /api/v1/jogadores/:id/patrocinios",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{token}}","type":"text"}
+        ],
+        "url": {"raw":"{{baseUrl}}/api/v1/jogadores/{{jogadorId}}/patrocinios","host":["{{baseUrl}}"],"path":["api","v1","jogadores","{{jogadorId}}","patrocinios"]}
+      }
+    },
+    {
+      "name": "GET /api/v1/transferencias/jogador/:id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{token}}","type":"text"}
+        ],
+        "url": {"raw":"{{baseUrl}}/api/v1/transferencias/jogador/{{jogadorId}}","host":["{{baseUrl}}"],"path":["api","v1","transferencias","jogador","{{jogadorId}}"]}
+      }
+    }
+  ],
+  "event": [],
+  "variable": [
+    {"key":"baseUrl","value":"http://localhost:8080"},
+    {"key":"auth_user","value":"admin"},
+    {"key":"auth_pass","value":"senha"},
+    {"key":"jogadorId","value":"42"},
+    {"key":"token","value":""}
+  ]
+}
