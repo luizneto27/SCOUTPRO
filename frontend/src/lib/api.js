@@ -219,3 +219,40 @@ export function deleteCampeonato(token, id) {
     },
   });
 }
+
+export function listPartidas(token, campeonatoId, params = {}) {
+  return request(`/campeonatos/${campeonatoId}/partidas${queryString(params)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }).then(normalizePageResponse);
+}
+
+export function createPartida(token, payload) {
+  return request('/partidas', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updatePartida(token, id, payload) {
+  return request(`/partidas/${id}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deletePartida(token, id) {
+  return request(`/partidas/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}

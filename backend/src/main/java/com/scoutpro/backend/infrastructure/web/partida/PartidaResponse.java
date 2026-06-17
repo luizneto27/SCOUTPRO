@@ -5,6 +5,6 @@ import java.time.LocalDate;
 public record PartidaResponse(
         Integer id,
         LocalDate data,
-        Integer campeonatoId
+        Integer competicaoEdicaoId
 ) {
 }

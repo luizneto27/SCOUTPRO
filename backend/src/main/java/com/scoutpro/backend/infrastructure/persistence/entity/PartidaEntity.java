@@ -19,6 +19,6 @@ public class PartidaEntity extends BaseEntity {
     private LocalDate data;
 
     @ManyToOne
-    @JoinColumn(name = "competicao_id", nullable = false)
-    private CompeticaoEntity competicao;
+    @JoinColumn(name = "competicao_edicao_id", nullable = false)
+    private CompeticaoEdicaoEntity competicaoEdicao;
 }

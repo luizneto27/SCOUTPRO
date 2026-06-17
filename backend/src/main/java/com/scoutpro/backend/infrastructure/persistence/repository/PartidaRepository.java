@@ -9,5 +9,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PartidaRepository extends JpaRepository<PartidaEntity, Integer> {
 
-    Page<PartidaEntity> findByCompeticaoId(Integer competicaoId, Pageable pageable);
+    Page<PartidaEntity> findByCompeticaoEdicaoCompeticaoId(Integer competicaoId, Pageable pageable);
 }
