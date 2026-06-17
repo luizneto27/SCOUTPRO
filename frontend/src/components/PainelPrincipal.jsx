@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LayoutDashboard, Users, Activity, FileText, GitCompare, LogOut, Settings, BarChart2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import GestaoAtletas from './GestaoAtletas';
@@ -6,6 +6,7 @@ import RegistroLesoes from './RegistroLesoes';
 import EstatisticasPartida from './EstatisticasPartida';
 import ClubesContratos from './ClubesContratos';
 import ComparativoAtletas from './ComparativoAtletas';
+import { getCurrentUser, listCampeonatos, listClubes, listJogadores } from '../lib/api';
 
 
 // --- DADOS FALSOS (MOCKS) ---
@@ -39,9 +40,60 @@ const alertasRecentes = [
   { id: 3, tipo: 'Recuperação otimizada', atleta: 'Pedro Santos', tempo: 'há 6h', cor: '#3b82f6' },
 ];
 
+const TOKEN_KEY = 'scoutpro.token';
+
 // --- COMPONENTE PRINCIPAL ---
 const PainelPrincipal = ({ onLogout }) => {
   const [menuAtivo, setMenuAtivo] = useState('dashboard');
+  const [usuario, setUsuario] = useState(null);
+  const [resumo, setResumo] = useState({
+    atletas: 0,
+    clubes: 0,
+    campeonatos: 0,
+  });
+
+  useEffect(() => {
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      onLogout();
+      return;
+    }
+
+    let ativo = true;
+
+    const carregar = async () => {
+      try {
+        const [user, jogadoresPage, clubes, campeonatosPage] = await Promise.all([
+          getCurrentUser(token),
+          listJogadores(token, { size: 1 }),
+          listClubes(token),
+          listCampeonatos(token, { size: 1 }),
+        ]);
+
+        if (!ativo) {
+          return;
+        }
+
+        setUsuario(user);
+        setResumo({
+          atletas: jogadoresPage?.totalElements ?? jogadoresPage?.content?.length ?? 0,
+          clubes: Array.isArray(clubes) ? clubes.length : 0,
+          campeonatos: campeonatosPage?.totalElements ?? campeonatosPage?.content?.length ?? 0,
+        });
+      } catch (error) {
+        window.localStorage.removeItem(TOKEN_KEY);
+        if (ativo) {
+          onLogout();
+        }
+      }
+    };
+
+    carregar();
+
+    return () => {
+      ativo = false;
+    };
+  }, [onLogout]);
 
   return (
     <div style={styles.container}>
@@ -81,7 +133,7 @@ const PainelPrincipal = ({ onLogout }) => {
           </button>
         </nav>
 
-        <button onClick={() => onLogout('login')} style={styles.logoutButton}>
+        <button onClick={onLogout} style={styles.logoutButton}>
           <LogOut size={20} /> Sair
         </button>
       </aside>
@@ -101,7 +153,7 @@ const PainelPrincipal = ({ onLogout }) => {
           </h2>
           <div style={styles.userProfile}>
             <div style={styles.avatar}>A</div>
-            <span style={{ color: '#fff' }}>Admin</span>
+            <span style={{ color: '#fff' }}>{usuario?.username || 'Admin'}</span>
           </div>
         </header>
 
@@ -115,24 +167,24 @@ const PainelPrincipal = ({ onLogout }) => {
                   <Users size={20} color="#3b82f6" />
                   <span style={styles.cardTitle}>Atletas Ativos</span>
                 </div>
-                <h3 style={styles.cardValue}>28</h3>
+                <h3 style={styles.cardValue}>{resumo.atletas}</h3>
                 <span style={styles.cardTrend}>+12% vs período anterior</span>
               </div>
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
                   <FileText size={20} color="#06b6d4" />
-                  <span style={styles.cardTitle}>Avaliações</span>
+                  <span style={styles.cardTitle}>Campeonatos</span>
                 </div>
-                <h3 style={styles.cardValue}>156</h3>
-                <span style={styles.cardTrend}>+8% vs período anterior</span>
+                <h3 style={styles.cardValue}>{resumo.campeonatos}</h3>
+                <span style={styles.cardTrend}>Dados do endpoint /campeonatos</span>
               </div>
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
                   <Activity size={20} color="#8b5cf6" />
-                  <span style={styles.cardTitle}>Treinos</span>
+                  <span style={styles.cardTitle}>Clubes</span>
                 </div>
-                <h3 style={styles.cardValue}>42</h3>
-                <span style={styles.cardTrend}>+15% vs período anterior</span>
+                <h3 style={styles.cardValue}>{resumo.clubes}</h3>
+                <span style={styles.cardTrend}>Dados do endpoint /clubes</span>
               </div>
             </div>
 
@@ -236,7 +288,7 @@ const PainelPrincipal = ({ onLogout }) => {
         )}
 
         {/* --- TELAS PLUGADAS AQUI --- */}
-        {menuAtivo === 'atletas' && <GestaoAtletas />}
+        {menuAtivo === 'atletas' && <GestaoAtletas onSessionExpired={onLogout} />}
         
         {menuAtivo === 'lesoes' && <RegistroLesoes />}
 
@@ -244,7 +296,7 @@ const PainelPrincipal = ({ onLogout }) => {
         
         {menuAtivo === 'comparativo' && <ComparativoAtletas />}
 
-        {menuAtivo === 'contratos' && <ClubesContratos />}      
+        {menuAtivo === 'contratos' && <ClubesContratos onSessionExpired={onLogout} />}      
 
         {/* OUTROS MENUS EM DESENVOLVIMENTO */}
         {menuAtivo !== 'dashboard' && menuAtivo !== 'atletas'&& menuAtivo !== 'comparativo' && menuAtivo !== 'lesoes' && menuAtivo !== 'estatisticas' && menuAtivo !== 'contratos' && (

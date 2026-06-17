@@ -65,7 +65,7 @@ public class ContratoService {
         if (normalized == null || normalized.length() != 14) {
             throw new IllegalArgumentException("cnpj invalido");
         }
-        return clubeRepository.findByCnpj(normalized)
+        return clubeRepository.findByNormalizedCnpj(normalized)
                 .orElseThrow(() -> new ResourceNotFoundException("clube nao encontrado"));
     }
 

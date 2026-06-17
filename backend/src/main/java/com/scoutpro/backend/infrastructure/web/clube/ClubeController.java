@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -74,8 +75,8 @@ public class ClubeController {
     @Operation(summary = "Lista jogadores ativos do clube")
     @ApiResponse(responseCode = "200", description = "Lista de jogadores retornada")
     @ApiResponse(responseCode = "404", description = "Clube inexistente")
-    @GetMapping("/{cnpj}/jogadores")
-    public List<ClubeJogadorResponse> listJogadores(@PathVariable String cnpj) {
+    @GetMapping("/jogadores")
+    public List<ClubeJogadorResponse> listJogadores(@RequestParam String cnpj) {
         return clubeService.listJogadores(cnpj);
     }
 }
