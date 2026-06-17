@@ -41,6 +41,7 @@ const removerAcentos = (texto) => {
 };
 
 const RegistroLesoes = ({ onSessionExpired }) => {
+  const PAGE_SIZE = 8;
   const [busca, setBusca] = useState("");
   const [jogadores, setJogadores] = useState([]);
   const [lesoes, setLesoes] = useState([]);
@@ -50,6 +51,7 @@ const RegistroLesoes = ({ onSessionExpired }) => {
   const [modalAberto, setModalAberto] = useState(false);
   const [modoModal, setModoModal] = useState("novo");
   const [formLesao, setFormLesao] = useState(emptyForm);
+  const [paginaAtual, setPaginaAtual] = useState(0);
 
   const carregarDados = async () => {
     const token = window.localStorage.getItem(TOKEN_KEY);
@@ -224,6 +226,17 @@ const RegistroLesoes = ({ onSessionExpired }) => {
     });
   }, [busca, lesoes]);
 
+  useEffect(() => {
+    setPaginaAtual(0);
+  }, [busca, lesoes]);
+
+  const totalPaginas = Math.max(1, Math.ceil(lesoesFiltradas.length / PAGE_SIZE));
+
+  const lesoesPaginadas = useMemo(() => {
+    const inicio = paginaAtual * PAGE_SIZE;
+    return lesoesFiltradas.slice(inicio, inicio + PAGE_SIZE);
+  }, [lesoesFiltradas, paginaAtual]);
+
   const formatarData = (valor) => {
     if (!valor) {
       return "-";
@@ -322,7 +335,7 @@ const RegistroLesoes = ({ onSessionExpired }) => {
             </tr>
           </thead>
           <tbody>
-            {lesoesFiltradas.map((lesao) => {
+            {lesoesPaginadas.map((lesao) => {
               const cores = getCorGravidade(lesao.gravidade);
               return (
                 <tr key={lesao.id} style={styles.tableRow}>
@@ -376,6 +389,27 @@ const RegistroLesoes = ({ onSessionExpired }) => {
           </tbody>
         </table>
       </div>
+      {lesoesFiltradas.length > PAGE_SIZE ? (
+        <div style={styles.paginationBar}>
+          <button
+            style={styles.paginationButton}
+            onClick={() => setPaginaAtual((atual) => Math.max(0, atual - 1))}
+            disabled={paginaAtual === 0}
+          >
+            Anterior
+          </button>
+          <span style={styles.paginationText}>
+            Página {paginaAtual + 1} de {totalPaginas}
+          </span>
+          <button
+            style={styles.paginationButton}
+            onClick={() => setPaginaAtual((atual) => Math.min(totalPaginas - 1, atual + 1))}
+            disabled={paginaAtual >= totalPaginas - 1}
+          >
+            Próxima
+          </button>
+        </div>
+      ) : null}
 
       {modalAberto && (
         <div style={styles.modalOverlay}>
@@ -606,6 +640,21 @@ const styles = {
     border: "1px solid #334155",
     overflowX: "auto",
   },
+  paginationBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+  },
+  paginationButton: {
+    backgroundColor: "transparent",
+    color: "#cbd5e1",
+    border: "1px solid #334155",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  paginationText: { color: "#94a3b8", fontSize: "13px" },
   table: { width: "100%", borderCollapse: "collapse" },
   tableHeader: { borderBottom: "1px solid #334155", textAlign: "left" },
   th: {

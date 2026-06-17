@@ -7,6 +7,9 @@ import com.scoutpro.backend.infrastructure.web.partida.EstatisticaResponse;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -22,11 +25,13 @@ public class EstatisticaService {
     }
 
     @Transactional(readOnly = true)
-    public List<EstatisticaResponse> list(Integer jogadorId, Integer clubeId, Integer competicaoEdicaoId) {
-        return estatisticaRepository.findAll(buildSpecification(jogadorId, clubeId, competicaoEdicaoId), sort())
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<EstatisticaResponse> list(Integer jogadorId, Integer clubeId, Integer competicaoEdicaoId, Pageable pageable) {
+        Pageable sortedPageable = pageable.getSort().isSorted()
+                ? pageable
+                : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort());
+
+        return estatisticaRepository.findAll(buildSpecification(jogadorId, clubeId, competicaoEdicaoId), sortedPageable)
+                .map(this::toResponse);
     }
 
     private Specification<EstatisticaEntity> buildSpecification(Integer jogadorId, Integer clubeId, Integer competicaoEdicaoId) {

@@ -376,7 +376,7 @@ export function listEstatisticas(token, params = {}) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  });
+  }).then(normalizePageResponse);
 }
 
 export function getComparativoJogadores(token, params = {}) {

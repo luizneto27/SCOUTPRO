@@ -22,6 +22,7 @@ const emptyForm = {
 };
 
 const GestaoAtletas = ({ onSessionExpired }) => {
+  const PAGE_SIZE = 8;
   const [busca, setBusca] = useState('');
   const [atletas, setAtletas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,7 @@ const GestaoAtletas = ({ onSessionExpired }) => {
   const [formAtleta, setFormAtleta] = useState(emptyForm);
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [atletaVisto, setAtletaVisto] = useState(null);
+  const [paginaAtual, setPaginaAtual] = useState(0);
 
   useEffect(() => {
     let ativo = true;
@@ -92,6 +94,17 @@ const GestaoAtletas = ({ onSessionExpired }) => {
         .some((valor) => String(valor).toLowerCase().includes(termo));
     });
   }, [atletas, busca]);
+
+  useEffect(() => {
+    setPaginaAtual(0);
+  }, [busca, atletas]);
+
+  const totalPaginas = Math.max(1, Math.ceil(atletasFiltrados.length / PAGE_SIZE));
+
+  const atletasPaginados = useMemo(() => {
+    const inicio = paginaAtual * PAGE_SIZE;
+    return atletasFiltrados.slice(inicio, inicio + PAGE_SIZE);
+  }, [atletasFiltrados, paginaAtual]);
 
   const abrirPerfil = (atleta) => {
     setAtletaVisto(atleta);
@@ -243,7 +256,7 @@ const GestaoAtletas = ({ onSessionExpired }) => {
             </tr>
           </thead>
           <tbody>
-            {atletasFiltrados.map((atleta) => (
+            {atletasPaginados.map((atleta) => (
               <tr key={atleta.id} style={styles.tableRow}>
                 <td style={styles.tdBold}>{atleta.nome}</td>
                 <td style={styles.td}>{atleta.tipoJogador}</td>
@@ -270,6 +283,27 @@ const GestaoAtletas = ({ onSessionExpired }) => {
           </tbody>
         </table>
       </div>
+      {atletasFiltrados.length > PAGE_SIZE ? (
+        <div style={styles.paginationBar}>
+          <button
+            style={styles.paginationButton}
+            onClick={() => setPaginaAtual((atual) => Math.max(0, atual - 1))}
+            disabled={paginaAtual === 0}
+          >
+            Anterior
+          </button>
+          <span style={styles.paginationText}>
+            Página {paginaAtual + 1} de {totalPaginas}
+          </span>
+          <button
+            style={styles.paginationButton}
+            onClick={() => setPaginaAtual((atual) => Math.min(totalPaginas - 1, atual + 1))}
+            disabled={paginaAtual >= totalPaginas - 1}
+          >
+            Próxima
+          </button>
+        </div>
+      ) : null}
 
       {perfilAberto && atletaVisto && (
         <div style={styles.modalOverlay}>
@@ -379,6 +413,9 @@ const styles = {
   errorBox: { backgroundColor: '#7f1d1d', color: '#fecaca', padding: '12px 14px', borderRadius: '10px', border: '1px solid #ef4444' },
   loadingBox: { backgroundColor: '#0f172a', color: '#94a3b8', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' },
   tableContainer: { backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', border: '1px solid #334155', overflowX: 'auto' },
+  paginationBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' },
+  paginationButton: { backgroundColor: 'transparent', color: '#cbd5e1', border: '1px solid #334155', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer' },
+  paginationText: { color: '#94a3b8', fontSize: '13px' },
   table: { width: '100%', borderCollapse: 'collapse' },
   tableHeader: { borderBottom: '1px solid #334155', textAlign: 'left' },
   th: { color: '#94a3b8', fontSize: '13px', paddingBottom: '15px', fontWeight: 'bold', textTransform: 'uppercase' },
