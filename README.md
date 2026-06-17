@@ -89,11 +89,14 @@ docker compose up -d --build
 
 4. Acesse a aplicação:
 
+- Frontend: `http://localhost:3000`
 - API: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - OpenAPI: `http://localhost:8080/v3/api-docs`
 - Healthcheck: `http://localhost:8080/actuator/health`
 - PostgreSQL: `localhost:5432`
+
+O frontend é servido por `nginx` e encaminha chamadas para `/api` ao backend do container `backend` na porta `8080`.
 
 5. Para acompanhar logs:
 
