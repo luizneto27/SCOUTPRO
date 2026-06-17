@@ -1,6 +1,7 @@
 package com.scoutpro.backend.infrastructure.web.jogador;
 
 import com.scoutpro.backend.application.jogador.JogadorService;
+import com.scoutpro.backend.application.jogador.ContratoService;
 import com.scoutpro.backend.domain.enums.TipoJogador;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class JogadorController {
 
     private final JogadorService jogadorService;
+    private final ContratoService contratoService;
 
-    public JogadorController(JogadorService jogadorService) {
+    public JogadorController(JogadorService jogadorService, ContratoService contratoService) {
         this.jogadorService = jogadorService;
+        this.contratoService = contratoService;
     }
 
     @Operation(summary = "Cria jogador")
@@ -120,5 +123,18 @@ public class JogadorController {
             @Valid @RequestBody GoleiroRequest request
     ) {
         return jogadorService.updateGoleiro(id, request);
+    }
+
+    @Operation(summary = "Cria contrato para jogador")
+    @ApiResponse(responseCode = "201", description = "Contrato criado")
+    @ApiResponse(responseCode = "400", description = "Payload invalido")
+    @ApiResponse(responseCode = "404", description = "Jogador ou clube inexistente")
+    @ApiResponse(responseCode = "409", description = "Jogador ja possui contrato ativo")
+    @PostMapping("/{id}/contratos")
+    public ResponseEntity<ContratoResponse> createContrato(
+            @PathVariable Integer id,
+            @Valid @RequestBody ContratoRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(contratoService.create(id, request));
     }
 }
