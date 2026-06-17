@@ -1,51 +1,69 @@
 import React, { useState } from 'react';
+import { login as loginRequest } from '../lib/api';
+
+const TOKEN_KEY = 'scoutpro.token';
 
 const Login = ({ onNavigate }) => {
-  const [credenciais, setCredenciais] = useState({ email: '', senha: '' });
+  const [credenciais, setCredenciais] = useState({ username: '', password: '' });
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Tentativa de login:', credenciais);
-    // Aqui no futuro chamaremos a API de autenticação do backend
-    alert('Login simulado com sucesso! Levando ao Dashboard...');
+
+    setCarregando(true);
+    setErro('');
+
+    try {
+      const response = await loginRequest(credenciais.username.trim(), credenciais.password);
+      window.localStorage.setItem(TOKEN_KEY, response.token);
+      onNavigate('/dashboard', { replace: true });
+    } catch (error) {
+      setErro(error.message || 'Falha ao autenticar.');
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.logo}>SCOUT<span style={{color: '#3b82f6'}}>PRO</span></h1>
+        <h1 style={styles.logo}>SCOUT<span style={{ color: '#3b82f6' }}>PRO</span></h1>
         <p style={styles.subtitle}>Faça login para acessar o painel</p>
-        
+        {erro ? <p style={styles.error}>{erro}</p> : null}
+
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>E-mail</label>
-            <input 
-              type="email" 
-              style={styles.input} 
-              value={credenciais.email}
-              onChange={(e) => setCredenciais({...credenciais, email: e.target.value})}
-              required 
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Senha</label>
-            <input 
-              type="password" 
-              style={styles.input} 
-              value={credenciais.senha}
-              onChange={(e) => setCredenciais({...credenciais, senha: e.target.value})}
-              required 
+            <label style={styles.label}>Username</label>
+            <input
+              type="text"
+              style={styles.input}
+              value={credenciais.username}
+              onChange={(e) => setCredenciais({ ...credenciais, username: e.target.value })}
+              required
             />
           </div>
 
-          <button type="submit" style={styles.buttonPrimary}>Entrar</button>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Senha</label>
+            <input
+              type="password"
+              style={styles.input}
+              value={credenciais.password}
+              onChange={(e) => setCredenciais({ ...credenciais, password: e.target.value })}
+              required
+            />
+          </div>
+
+          <button type="submit" style={styles.buttonPrimary} disabled={carregando}>
+            {carregando ? 'Entrando...' : 'Entrar'}
+          </button>
         </form>
 
         <div style={styles.footer}>
           <span style={styles.footerText}>Ainda não tem acesso? </span>
-          <button onClick={() => onNavigate('cadastro')} style={styles.linkButton}>
-            Cadastre-se aqui
+          <button type="button" onClick={() => onNavigate('/cadastro')} style={styles.linkButton}>
+            Cadastro de usuário
           </button>
         </div>
       </div>
@@ -53,20 +71,69 @@ const Login = ({ onNavigate }) => {
   );
 };
 
-// Estilos baseados no seu Dark Theme
 const styles = {
-  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#0b1120', fontFamily: 'Inter, sans-serif' },
-  card: { backgroundColor: '#1e293b', padding: '40px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' },
+  container: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    padding: '24px',
+    background: 'radial-gradient(circle at top, #172554 0%, #0b1120 50%, #020617 100%)',
+    fontFamily: 'Inter, sans-serif',
+  },
+  card: {
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    padding: '40px',
+    borderRadius: '20px',
+    width: '100%',
+    maxWidth: '420px',
+    boxShadow: '0 24px 80px rgba(0, 0, 0, 0.45)',
+    border: '1px solid rgba(148, 163, 184, 0.16)',
+  },
   logo: { color: '#ffffff', textAlign: 'center', fontSize: '28px', margin: '0 0 10px 0' },
-  subtitle: { color: '#94a3b8', textAlign: 'center', marginBottom: '30px', fontSize: '14px' },
+  subtitle: { color: '#94a3b8', textAlign: 'center', marginBottom: '18px', fontSize: '14px' },
+  error: {
+    color: '#fca5a5',
+    backgroundColor: 'rgba(127, 29, 29, 0.35)',
+    border: '1px solid rgba(248, 113, 113, 0.35)',
+    padding: '12px 14px',
+    borderRadius: '8px',
+    marginBottom: '18px',
+    fontSize: '14px',
+    lineHeight: 1.5,
+  },
   form: { display: 'flex', flexDirection: 'column', gap: '20px' },
   inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
   label: { color: '#cbd5e1', fontSize: '14px' },
-  input: { padding: '12px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#ffffff', outline: 'none' },
-  buttonPrimary: { padding: '14px', borderRadius: '6px', border: 'none', backgroundColor: '#3b82f6', color: '#ffffff', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' },
+  input: {
+    padding: '12px',
+    borderRadius: '6px',
+    border: '1px solid #334155',
+    backgroundColor: '#0f172a',
+    color: '#ffffff',
+    outline: 'none',
+  },
+  buttonPrimary: {
+    padding: '14px',
+    borderRadius: '6px',
+    border: 'none',
+    backgroundColor: '#3b82f6',
+    color: '#ffffff',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    marginTop: '10px',
+  },
   footer: { marginTop: '25px', textAlign: 'center', fontSize: '14px' },
   footerText: { color: '#94a3b8' },
-  linkButton: { background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }
+  linkButton: {
+    background: 'none',
+    border: 'none',
+    color: '#3b82f6',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    textDecoration: 'underline',
+  },
 };
 
 export default Login;

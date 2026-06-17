@@ -1,11 +1,12 @@
 # ScoutPro
 
-Backend do ScoutPro construído com Java 21, Spring Boot 4, PostgreSQL, Flyway e autenticação JWT.
+ScoutPro com frontend em React/Vite, backend em Java 21 com Spring Boot 4, PostgreSQL, Flyway e autenticação JWT.
 
 ## Estado atual da arquitetura
 
-O repositório está organizado com foco em backend e versionamento do schema:
+O repositório está organizado com frontend, backend e versionamento do schema:
 
+- `frontend/`: aplicação React/Vite servida por `nginx` no Docker.
 - `backend/`: aplicação Spring Boot.
 - `backend/src/main/java/com/scoutpro/backend/config/security`: configuração de segurança, JWT e bootstrap do admin.
 - `backend/src/main/java/com/scoutpro/backend/application`: serviços de aplicação.
@@ -42,6 +43,9 @@ Endpoints já disponíveis:
 - JWT
 - Flyway
 - PostgreSQL
+- React
+- Vite
+- Nginx
 - Springdoc OpenAPI
 - Testcontainers para testes de integração
 
@@ -81,27 +85,38 @@ Boas práticas:
 - não reutilize segredos entre ambientes;
 - não commite o `.env` com segredo real no repositório.
 
-3. Suba os serviços:
+3. Suba a stack completa:
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build postgres backend frontend
 ```
 
 4. Acesse a aplicação:
 
+- Frontend: `http://localhost:3000`
 - API: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - OpenAPI: `http://localhost:8080/v3/api-docs`
 - Healthcheck: `http://localhost:8080/actuator/health`
 - PostgreSQL: `localhost:5432`
 
-5. Para acompanhar logs:
+O frontend é servido por `nginx` e encaminha chamadas para `/api` ao backend do container `backend` na porta `8080`.
+
+5. Para rebuildar apenas frontend e backend sem mexer no volume do banco:
 
 ```bash
-docker compose logs -f backend
+docker compose stop backend frontend
+docker compose rm -f backend frontend
+docker compose up -d --build backend frontend
 ```
 
-6. Para derrubar o ambiente:
+6. Para acompanhar logs:
+
+```bash
+docker compose logs -f frontend backend postgres
+```
+
+7. Para derrubar o ambiente:
 
 ```bash
 docker compose down
@@ -130,7 +145,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 O profile `local` usa `backend/src/main/resources/application-local.yml` e, por padrão, tenta conectar em:
 
 - database: `scoutpro-project`
-- usuário: `scoutpro`
+- usuario: `scoutpro`
 - senha: `scoutpro`
 
 Se quiser reutilizar o banco do `docker-compose.yml`, defina as variáveis antes de subir a aplicação local.
@@ -138,9 +153,9 @@ Se quiser reutilizar o banco do `docker-compose.yml`, defina as variáveis antes
 Exemplo em PowerShell:
 
 ```bash
-$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/scoutpro"
-$env:SPRING_DATASOURCE_USERNAME="admin"
-$env:SPRING_DATASOURCE_PASSWORD="admin123"
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/scoutpro-project"
+$env:SPRING_DATASOURCE_USERNAME="scoutpro"
+$env:SPRING_DATASOURCE_PASSWORD="scoutpro"
 $env:JWT_SECRET="change-me-change-me-change-me-change-me"
 ```
 
