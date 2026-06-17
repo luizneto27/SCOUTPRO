@@ -117,7 +117,7 @@ const PainelPrincipal = ({ onLogout }) => {
           </button>
           
           <button style={menuAtivo === 'estatisticas' ? styles.navItemAtivo : styles.navItem} onClick={() => setMenuAtivo('estatisticas')}>
-            <BarChart2 size={20} /> Estatísticas & Partidas
+            <BarChart2 size={20} /> Partidas
           </button>
 
           <button style={menuAtivo === 'comparativo' ? styles.navItemAtivo : styles.navItem} onClick={() => setMenuAtivo('comparativo')}>
@@ -146,7 +146,7 @@ const PainelPrincipal = ({ onLogout }) => {
             {menuAtivo === 'dashboard' && 'Dashboard'}
             {menuAtivo === 'lesoes' && 'Departamento Médico'}
             {menuAtivo === 'atletas' && 'Gestão de Atletas'}
-            {menuAtivo === 'estatisticas' && 'Estatísticas'}
+            {menuAtivo === 'estatisticas' && 'Partidas'}
             {menuAtivo === 'comparativo' && 'Comparativo de Atletas'}
             {menuAtivo === 'contratos' && 'Contratos'}
             {menuAtivo === 'configuracoes' && 'Configurações'}
@@ -292,7 +292,7 @@ const PainelPrincipal = ({ onLogout }) => {
         
         {menuAtivo === 'lesoes' && <RegistroLesoes />}
 
-        {menuAtivo === 'estatisticas' && <EstatisticasPartida />}
+        {menuAtivo === 'estatisticas' && <EstatisticasPartida onSessionExpired={onLogout} />}
         
         {menuAtivo === 'comparativo' && <ComparativoAtletas />}
 
