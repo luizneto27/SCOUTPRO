@@ -72,23 +72,23 @@ public class LesaoService {
         YearMonth mesAtual = YearMonth.from(hoje);
 
         long noDepartamentoMedico = lesoes.stream()
-                .filter(lesao -> lesao.getStatusRecuperacao() != StatusRecuperacaoLesao.RECUPERADO)
+                .filter(lesao -> isIndisponivelHoje(lesao, hoje))
                 .count();
 
         long retornoPrevistoProximos7Dias = lesoes.stream()
-                .filter(lesao -> lesao.getStatusRecuperacao() != StatusRecuperacaoLesao.RECUPERADO)
+                .filter(lesao -> isIndisponivelHoje(lesao, hoje))
                 .map(this::calcularDataPrevistaRetorno)
                 .filter(data -> data != null && !data.isBefore(hoje) && !data.isAfter(limiteRetorno))
                 .count();
 
         long recuperados = lesoes.stream()
-                .filter(lesao -> lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.RECUPERADO)
+                .filter(lesao -> isRecuperada(lesao, hoje))
                 .count();
 
         long recuperadosNoMes = lesoes.stream()
-                .filter(lesao -> lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.RECUPERADO)
+                .filter(lesao -> isRecuperada(lesao, hoje))
                 .map(this::calcularDataPrevistaRetorno)
-                .filter(data -> data != null && YearMonth.from(data).equals(mesAtual))
+                .filter(data -> data != null && !data.isAfter(hoje) && YearMonth.from(data).equals(mesAtual))
                 .count();
 
         return new LesaoResumoResponse(
@@ -98,6 +98,34 @@ public class LesaoService {
                 recuperados,
                 recuperadosNoMes
         );
+    }
+
+    private boolean isIndisponivelHoje(LesaoEntity lesao, LocalDate hoje) {
+        if (lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.RECUPERADO) {
+            return false;
+        }
+
+        if (lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.EM_RECUPERACAO
+                || lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.RECAIDA) {
+            return true;
+        }
+
+        LocalDate retornoPrevisto = calcularDataPrevistaRetorno(lesao);
+        return retornoPrevisto == null || !retornoPrevisto.isBefore(hoje);
+    }
+
+    private boolean isRecuperada(LesaoEntity lesao, LocalDate hoje) {
+        if (lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.RECUPERADO) {
+            return true;
+        }
+
+        if (lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.EM_RECUPERACAO
+                || lesao.getStatusRecuperacao() == StatusRecuperacaoLesao.RECAIDA) {
+            return false;
+        }
+
+        LocalDate retornoPrevisto = calcularDataPrevistaRetorno(lesao);
+        return retornoPrevisto != null && retornoPrevisto.isBefore(hoje);
     }
 
     private Specification<LesaoEntity> buildSpecification(Integer jogadorId, GravidadeLesao gravidade, StatusRecuperacaoLesao statusRecuperacao) {

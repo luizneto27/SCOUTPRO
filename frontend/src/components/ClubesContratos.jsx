@@ -33,6 +33,7 @@ const emptyTransferenciaForm = {
 };
 
 const ClubesContratos = ({ onSessionExpired }) => {
+  const PAGE_SIZE = 8;
   const [busca, setBusca] = useState('');
   const [clubes, setClubes] = useState([]);
   const [selecionado, setSelecionado] = useState(null);
@@ -49,6 +50,8 @@ const ClubesContratos = ({ onSessionExpired }) => {
   const [formContrato, setFormContrato] = useState(emptyContratoForm);
   const [modalTransferenciaAberto, setModalTransferenciaAberto] = useState(false);
   const [formTransferencia, setFormTransferencia] = useState(emptyTransferenciaForm);
+  const [paginaClubes, setPaginaClubes] = useState(0);
+  const [paginaContratos, setPaginaContratos] = useState(0);
 
   const carregarClubes = async () => {
     const token = window.localStorage.getItem(TOKEN_KEY);
@@ -139,6 +142,26 @@ const ClubesContratos = ({ onSessionExpired }) => {
         .some((valor) => String(valor).toLowerCase().includes(termo));
     });
   }, [clubes, busca]);
+
+  useEffect(() => {
+    setPaginaClubes(0);
+  }, [busca, clubes]);
+
+  useEffect(() => {
+    setPaginaContratos(0);
+  }, [selecionado?.cnpj, contratosDoClube]);
+
+  const totalPaginasClubes = Math.max(1, Math.ceil(clubesFiltrados.length / PAGE_SIZE));
+  const clubesPaginados = useMemo(() => {
+    const inicio = paginaClubes * PAGE_SIZE;
+    return clubesFiltrados.slice(inicio, inicio + PAGE_SIZE);
+  }, [clubesFiltrados, paginaClubes]);
+
+  const totalPaginasContratos = Math.max(1, Math.ceil(contratosDoClube.length / PAGE_SIZE));
+  const contratosPaginados = useMemo(() => {
+    const inicio = paginaContratos * PAGE_SIZE;
+    return contratosDoClube.slice(inicio, inicio + PAGE_SIZE);
+  }, [contratosDoClube, paginaContratos]);
 
   const abrirNovo = () => {
     setModoModal('novo');
@@ -387,7 +410,7 @@ const ClubesContratos = ({ onSessionExpired }) => {
             </tr>
           </thead>
           <tbody>
-            {clubesFiltrados.map((clube) => (
+            {clubesPaginados.map((clube) => (
               <tr key={clube.id} style={styles.tableRow}>
                 <td style={styles.tdBold}>{clube.nome}</td>
                 <td style={styles.td}>{clube.cnpj}</td>
@@ -410,6 +433,27 @@ const ClubesContratos = ({ onSessionExpired }) => {
           </tbody>
         </table>
       </div>
+      {clubesFiltrados.length > PAGE_SIZE ? (
+        <div style={styles.paginationBar}>
+          <button
+            style={styles.paginationButton}
+            onClick={() => setPaginaClubes((atual) => Math.max(0, atual - 1))}
+            disabled={paginaClubes === 0}
+          >
+            Anterior
+          </button>
+          <span style={styles.paginationText}>
+            Página {paginaClubes + 1} de {totalPaginasClubes}
+          </span>
+          <button
+            style={styles.paginationButton}
+            onClick={() => setPaginaClubes((atual) => Math.min(totalPaginasClubes - 1, atual + 1))}
+            disabled={paginaClubes >= totalPaginasClubes - 1}
+          >
+            Próxima
+          </button>
+        </div>
+      ) : null}
 
       {selecionado && (
         <div style={styles.detailCard}>
@@ -448,7 +492,7 @@ const ClubesContratos = ({ onSessionExpired }) => {
               {contratosDoClube.length === 0 ? (
                 <div style={styles.emptyState}>Nenhum contrato encontrado para este clube.</div>
               ) : (
-                contratosDoClube.map((contrato) => (
+                contratosPaginados.map((contrato) => (
                   <div key={contrato.id} style={styles.playerItem}>
                     <div>
                       <div style={styles.playerName}>{contrato.jogadorNome}</div>
@@ -464,6 +508,27 @@ const ClubesContratos = ({ onSessionExpired }) => {
                 ))
               )}
             </div>
+            {contratosDoClube.length > PAGE_SIZE ? (
+              <div style={styles.paginationBarInline}>
+                <button
+                  style={styles.paginationButton}
+                  onClick={() => setPaginaContratos((atual) => Math.max(0, atual - 1))}
+                  disabled={paginaContratos === 0}
+                >
+                  Anterior
+                </button>
+                <span style={styles.paginationText}>
+                  Página {paginaContratos + 1} de {totalPaginasContratos}
+                </span>
+                <button
+                  style={styles.paginationButton}
+                  onClick={() => setPaginaContratos((atual) => Math.min(totalPaginasContratos - 1, atual + 1))}
+                  disabled={paginaContratos >= totalPaginasContratos - 1}
+                >
+                  Próxima
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div style={styles.detailCard}>
@@ -699,6 +764,10 @@ const styles = {
   errorBox: { backgroundColor: '#7f1d1d', color: '#fecaca', padding: '12px 14px', borderRadius: '10px', border: '1px solid #ef4444' },
   loadingBox: { backgroundColor: '#0f172a', color: '#94a3b8', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' },
   tableContainer: { backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', border: '1px solid #334155', overflowX: 'auto' },
+  paginationBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' },
+  paginationBarInline: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '14px' },
+  paginationButton: { backgroundColor: 'transparent', color: '#cbd5e1', border: '1px solid #334155', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer' },
+  paginationText: { color: '#94a3b8', fontSize: '13px' },
   table: { width: '100%', borderCollapse: 'collapse' },
   tableHeader: { borderBottom: '1px solid #334155', textAlign: 'left' },
   th: { color: '#94a3b8', fontSize: '13px', paddingBottom: '15px', fontWeight: 'bold', textTransform: 'uppercase' },

@@ -20,6 +20,7 @@ public record JogadorResponse(
         EmpresarioResumoResponse empresario,
         Boolean ativo,
         TipoJogador tipoJogador,
+        Boolean possuiRelatorios,
         List<JogadorPosicaoResponse> posicoes,
         JogadorLinhaResponse jogadorLinha,
         GoleiroResponse goleiro

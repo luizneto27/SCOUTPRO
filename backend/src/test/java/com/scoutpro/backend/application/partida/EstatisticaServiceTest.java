@@ -14,7 +14,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,14 +71,15 @@ class EstatisticaServiceTest {
     @Test
     @DisplayName("Should list estatisticas with filters")
     void listSuccess() {
-        when(estatisticaRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(estatistica));
+        when(estatisticaRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(estatistica)));
 
-        var response = estatisticaService.list(5, 3, 21);
+        var response = estatisticaService.list(5, 3, 21, PageRequest.of(0, 8));
 
-        assertEquals(1, response.size());
-        assertEquals("Lucas Pereira", response.get(0).jogadorNome());
-        assertEquals("Serie A", response.get(0).campeonatoNome());
-        assertEquals(Short.valueOf((short) 4), response.get(0).gols());
-        verify(estatisticaRepository, times(1)).findAll(any(Specification.class), any(Sort.class));
+        assertEquals(1, response.getContent().size());
+        assertEquals("Lucas Pereira", response.getContent().get(0).jogadorNome());
+        assertEquals("Serie A", response.getContent().get(0).campeonatoNome());
+        assertEquals(Short.valueOf((short) 4), response.getContent().get(0).gols());
+        verify(estatisticaRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 }

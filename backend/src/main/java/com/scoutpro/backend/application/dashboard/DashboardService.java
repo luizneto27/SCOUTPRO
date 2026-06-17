@@ -65,8 +65,7 @@ public class DashboardService {
         long campeonatos = competicaoRepository.count();
 
         List<LesaoEntity> lesoes = lesaoRepository.findAll();
-        List<RelatorioEntity> relatoriosRecentes = relatorioRepository
-                .findByDataObservacaoGreaterThanEqualOrderByDataObservacaoAscIdAsc(LocalDate.now().minusDays(30));
+        List<RelatorioEntity> relatoriosRecentes = relatorioRepository.findTop20ByOrderByDataObservacaoDescIdDesc();
         List<EstatisticaEntity> estatisticas = estatisticaRepository.findAll();
 
         return new DashboardResumoResponse(

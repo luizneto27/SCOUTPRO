@@ -53,9 +53,11 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
   const [campeonatoSelecionadoId, setCampeonatoSelecionadoId] = useState('');
   const [edicaoSelecionadaId, setEdicaoSelecionadaId] = useState('');
   const [partidas, setPartidas] = useState([]);
+  const [partidasPage, setPartidasPage] = useState({ number: 0, totalPages: 0, totalElements: 0, size: 8 });
   const [partidaSelecionadaId, setPartidaSelecionadaId] = useState('');
   const [disputas, setDisputas] = useState([]);
   const [estatisticas, setEstatisticas] = useState([]);
+  const [estatisticasPage, setEstatisticasPage] = useState({ number: 0, totalPages: 0, totalElements: 0, size: 8 });
   const [loadingCampeonatos, setLoadingCampeonatos] = useState(true);
   const [loadingPartidas, setLoadingPartidas] = useState(false);
   const [loadingPainel, setLoadingPainel] = useState(false);
@@ -165,7 +167,7 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
     }
   };
 
-  const carregarPartidas = async (campeonatoId, competicaoEdicaoId) => {
+  const carregarPartidas = async (campeonatoId, competicaoEdicaoId, page = 0) => {
     const token = getToken();
     if (!token) {
       return;
@@ -173,15 +175,22 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
 
     if (!campeonatoId) {
       setPartidas([]);
+      setPartidasPage({ number: 0, totalPages: 0, totalElements: 0, size: 8 });
       setPartidaSelecionadaId('');
       return;
     }
 
     setLoadingPartidas(true);
     try {
-      const data = await listPartidas(token, campeonatoId, { size: 100, competicaoEdicaoId });
+      const data = await listPartidas(token, campeonatoId, { page, size: 8, competicaoEdicaoId });
       const itens = data?.content ?? [];
       setPartidas(itens);
+      setPartidasPage({
+        number: data?.number ?? 0,
+        totalPages: data?.totalPages ?? 0,
+        totalElements: data?.totalElements ?? 0,
+        size: data?.size ?? 8,
+      });
       setPartidaSelecionadaId((current) => {
         if (current && itens.some((item) => String(item.id) === String(current))) {
           return current;
@@ -201,7 +210,7 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
     }
   };
 
-  const carregarPainelPartida = async (partidaId, competicaoEdicaoId) => {
+  const carregarPainelPartida = async (partidaId, competicaoEdicaoId, page = 0) => {
     const token = getToken();
     if (!token) {
       return;
@@ -210,6 +219,7 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
     if (!partidaId) {
       setDisputas([]);
       setEstatisticas([]);
+      setEstatisticasPage({ number: 0, totalPages: 0, totalElements: 0, size: 8 });
       return;
     }
 
@@ -217,10 +227,16 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
     try {
       const [disputasData, estatisticasData] = await Promise.all([
         listDisputas(token, partidaId),
-        listEstatisticas(token, { competicaoEdicaoId }),
+        listEstatisticas(token, { competicaoEdicaoId, page, size: 8 }),
       ]);
       setDisputas(disputasData ?? []);
-      setEstatisticas(estatisticasData ?? []);
+      setEstatisticas(estatisticasData?.content ?? []);
+      setEstatisticasPage({
+        number: estatisticasData?.number ?? 0,
+        totalPages: estatisticasData?.totalPages ?? 0,
+        totalElements: estatisticasData?.totalElements ?? 0,
+        size: estatisticasData?.size ?? 8,
+      });
       setError('');
     } catch (err) {
       if (isAuthError(err)) {
@@ -248,14 +264,14 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
 
   useEffect(() => {
     if (campeonatoSelecionadoId) {
-      carregarPartidas(campeonatoSelecionadoId, edicaoSelecionadaId || undefined);
+      carregarPartidas(campeonatoSelecionadoId, edicaoSelecionadaId || undefined, 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campeonatoSelecionadoId, edicaoSelecionadaId]);
 
   useEffect(() => {
     if (partidaSelecionadaId) {
-      carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined);
+      carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined, 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partidaSelecionadaId, edicaoSelecionadaId]);
@@ -419,7 +435,7 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
         await updateDisputa(token, partidaSelecionadaId, payload.jogadorId, payload);
       }
 
-      await carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined);
+      await carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined, estatisticasPage.number);
       setModalDisputaAberto(false);
       setFormDisputa(emptyDisputaForm);
       setError('');
@@ -445,7 +461,7 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
 
     try {
       await deleteDisputa(token, partidaSelecionadaId, disputa.jogadorId);
-      await carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined);
+      await carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined, estatisticasPage.number);
       setError('');
     } catch (err) {
       if (isAuthError(err)) {
@@ -526,7 +542,7 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
             ))}
           </select>
 
-          <button style={styles.refreshButton} onClick={() => carregarPartidas(campeonatoSelecionadoId, edicaoSelecionadaId || undefined)}>
+          <button style={styles.refreshButton} onClick={() => carregarPartidas(campeonatoSelecionadoId, edicaoSelecionadaId || undefined, partidasPage.number)}>
             <RefreshCw size={16} /> Atualizar
           </button>
 
@@ -540,6 +556,11 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
       {loadingCampeonatos || loadingPartidas ? <div style={styles.loadingBox}>Carregando partidas...</div> : null}
 
       <div style={styles.tableContainer}>
+        <div style={styles.tableSummary}>
+          <span style={styles.paginationInfo}>
+            {partidasPage.totalElements > 0 ? `${partidasPage.totalElements} partidas` : '0 partidas'}
+          </span>
+        </div>
         <table style={styles.table}>
           <thead>
             <tr style={styles.tableHeader}>
@@ -586,6 +607,27 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
           </tbody>
         </table>
       </div>
+      {partidasPage.totalPages > 1 ? (
+        <div style={styles.paginationBar}>
+          <button
+            style={styles.paginationButton}
+            onClick={() => carregarPartidas(campeonatoSelecionadoId, edicaoSelecionadaId || undefined, partidasPage.number - 1)}
+            disabled={loadingPartidas || partidasPage.number <= 0}
+          >
+            Anterior
+          </button>
+          <span style={styles.paginationText}>
+            Página {partidasPage.number + 1} de {partidasPage.totalPages}
+          </span>
+          <button
+            style={styles.paginationButton}
+            onClick={() => carregarPartidas(campeonatoSelecionadoId, edicaoSelecionadaId || undefined, partidasPage.number + 1)}
+            disabled={loadingPartidas || partidasPage.number >= partidasPage.totalPages - 1}
+          >
+            Próxima
+          </button>
+        </div>
+      ) : null}
 
       <div style={styles.dualGrid}>
         <div style={styles.panel}>
@@ -630,6 +672,9 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
               <BarChart3 size={18} color="#10b981" />
               <h3 style={styles.panelTitle}>Estatísticas agregadas</h3>
             </div>
+            <div style={styles.paginationInfo}>
+              {estatisticasPage.totalElements > 0 ? `${estatisticasPage.totalElements} registros` : '0 registros'}
+            </div>
           </div>
           <div style={styles.listWrap}>
             {estatisticas.map((item) => (
@@ -646,6 +691,27 @@ const EstatisticasPartida = ({ onSessionExpired }) => {
               <div style={styles.emptyStateCard}>Nenhuma estatística agregada disponível para a edição selecionada.</div>
             )}
           </div>
+          {estatisticasPage.totalPages > 1 ? (
+            <div style={styles.paginationBar}>
+              <button
+                style={styles.paginationButton}
+                onClick={() => carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined, estatisticasPage.number - 1)}
+                disabled={loadingPainel || estatisticasPage.number <= 0}
+              >
+                Anterior
+              </button>
+              <span style={styles.paginationText}>
+                Página {estatisticasPage.number + 1} de {estatisticasPage.totalPages}
+              </span>
+              <button
+                style={styles.paginationButton}
+                onClick={() => carregarPainelPartida(partidaSelecionadaId, edicaoSelecionadaId || undefined, estatisticasPage.number + 1)}
+                disabled={loadingPainel || estatisticasPage.number >= estatisticasPage.totalPages - 1}
+              >
+                Próxima
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -805,6 +871,7 @@ const styles = {
   errorBox: { backgroundColor: '#7f1d1d', color: '#fecaca', padding: '12px 14px', borderRadius: '10px', border: '1px solid #ef4444' },
   loadingBox: { backgroundColor: '#0f172a', color: '#94a3b8', padding: '12px 14px', borderRadius: '10px', border: '1px solid #334155' },
   tableContainer: { backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', border: '1px solid #334155', overflowX: 'auto' },
+  tableSummary: { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' },
   table: { width: '100%', borderCollapse: 'collapse' },
   tableHeader: { borderBottom: '1px solid #334155', textAlign: 'left' },
   th: { color: '#94a3b8', fontSize: '13px', paddingBottom: '15px', fontWeight: 'bold', textTransform: 'uppercase' },
@@ -828,6 +895,10 @@ const styles = {
   listMeta: { color: '#94a3b8', fontSize: '13px' },
   listActions: { display: 'flex', gap: '8px' },
   emptyStateCard: { backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '18px', color: '#94a3b8', textAlign: 'center' },
+  paginationInfo: { color: '#94a3b8', fontSize: '12px' },
+  paginationBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #334155' },
+  paginationButton: { backgroundColor: 'transparent', color: '#cbd5e1', border: '1px solid #334155', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer' },
+  paginationText: { color: '#94a3b8', fontSize: '13px' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' },
   modalContent: { backgroundColor: '#1e293b', padding: '0', borderRadius: '12px', width: '100%', maxWidth: '860px', border: '1px solid #334155', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', maxHeight: '90vh', overflowY: 'auto' },
   modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderBottom: '1px solid #334155' },

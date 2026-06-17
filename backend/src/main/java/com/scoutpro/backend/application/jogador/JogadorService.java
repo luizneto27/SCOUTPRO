@@ -17,6 +17,7 @@ import com.scoutpro.backend.infrastructure.persistence.repository.JogadorPosicao
 import com.scoutpro.backend.infrastructure.persistence.repository.JogadorRepository;
 import com.scoutpro.backend.infrastructure.persistence.repository.PaisRepository;
 import com.scoutpro.backend.infrastructure.persistence.repository.PosicaoRepository;
+import com.scoutpro.backend.infrastructure.persistence.repository.RelatorioRepository;
 import com.scoutpro.backend.infrastructure.web.jogador.CreateJogadorRequest;
 import com.scoutpro.backend.infrastructure.web.jogador.EmpresarioResumoResponse;
 import com.scoutpro.backend.infrastructure.web.jogador.GoleiroRequest;
@@ -50,6 +51,7 @@ public class JogadorService {
     private final JogadorPosicaoRepository jogadorPosicaoRepository;
     private final JogadorLinhaRepository jogadorLinhaRepository;
     private final GoleiroRepository goleiroRepository;
+    private final RelatorioRepository relatorioRepository;
 
     public JogadorService(
             JogadorRepository jogadorRepository,
@@ -58,7 +60,8 @@ public class JogadorService {
             PosicaoRepository posicaoRepository,
             JogadorPosicaoRepository jogadorPosicaoRepository,
             JogadorLinhaRepository jogadorLinhaRepository,
-            GoleiroRepository goleiroRepository
+            GoleiroRepository goleiroRepository,
+            RelatorioRepository relatorioRepository
     ) {
         this.jogadorRepository = jogadorRepository;
         this.paisRepository = paisRepository;
@@ -67,6 +70,7 @@ public class JogadorService {
         this.jogadorPosicaoRepository = jogadorPosicaoRepository;
         this.jogadorLinhaRepository = jogadorLinhaRepository;
         this.goleiroRepository = goleiroRepository;
+        this.relatorioRepository = relatorioRepository;
     }
 
     @Transactional
@@ -77,18 +81,22 @@ public class JogadorService {
         JogadorEntity saved = jogadorRepository.save(jogador);
         replacePosicoes(saved, request.posicoes());
 
-        return toResponse(saved);
+        return toResponse(saved, false);
     }
 
     @Transactional(readOnly = true)
     public Page<JogadorResponse> list(String nome, Boolean ativo, TipoJogador tipoJogador, Integer paisId, Pageable pageable) {
-        return jogadorRepository.findAll(buildSpecification(nome, ativo, tipoJogador, paisId), pageable)
-                .map(this::toResponse);
+        Page<JogadorEntity> page = jogadorRepository.findAll(buildSpecification(nome, ativo, tipoJogador, paisId), pageable);
+        Set<Integer> jogadorIdsComRelatorios = resolveJogadorIdsComRelatorios(page.getContent().stream()
+                .map(JogadorEntity::getId)
+                .toList());
+
+        return page.map(jogador -> toResponse(jogador, jogadorIdsComRelatorios.contains(jogador.getId())));
     }
 
     @Transactional(readOnly = true)
     public JogadorResponse getById(Integer id) {
-        return toResponse(findJogador(id));
+        return toResponse(findJogador(id), relatorioRepository.existsByJogadorId(id));
     }
 
     @Transactional
@@ -99,7 +107,7 @@ public class JogadorService {
         applyUpdateFields(jogador, request);
         replacePosicoes(jogador, request.posicoes());
 
-        return toResponse(jogador);
+        return toResponse(jogador, relatorioRepository.existsByJogadorId(jogador.getId()));
     }
 
     @Transactional
@@ -324,7 +332,14 @@ public class JogadorService {
                 .orElseThrow(() -> new ResourceNotFoundException("empresario nao encontrado"));
     }
 
-    private JogadorResponse toResponse(JogadorEntity jogador) {
+    private Set<Integer> resolveJogadorIdsComRelatorios(List<Integer> jogadorIds) {
+        if (jogadorIds == null || jogadorIds.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(relatorioRepository.findDistinctJogadorIdsWithRelatorios(jogadorIds));
+    }
+
+    private JogadorResponse toResponse(JogadorEntity jogador, boolean possuiRelatorios) {
         List<JogadorPosicaoResponse> posicoes = jogadorPosicaoRepository.findByJogadorIdOrderByOrdemAsc(jogador.getId())
                 .stream()
                 .map(this::toJogadorPosicaoResponse)
@@ -353,6 +368,7 @@ public class JogadorService {
                 toEmpresarioResumoResponse(jogador.getEmpresario()),
                 jogador.getAtivo(),
                 jogador.getTipoJogador(),
+                possuiRelatorios,
                 posicoes,
                 jogadorLinha,
                 goleiro
